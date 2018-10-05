@@ -1,6 +1,11 @@
 # Tube Library 2 [tubelib2]
 
+THIS MOD IS WORK IN PROGRESS !!!
+
 A library for mods which need connecting tubes / pipes / cables or similar.
+
+This mod is not useful for its own. It does not even have any nodes.
+It only comes with a few test nodes to play around with the tubing algorithm.
 
 Browse on: ![GitHub](https://github.com/joe7575/tubelib2)
 

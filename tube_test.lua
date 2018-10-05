@@ -204,5 +204,6 @@ minetest.register_node("tubelib2:tool", {
 	on_use = remove_tube,
 	on_place = repair_tubes,
 	node_placement_prediction = "",
+	stack_max = 1,
 })
 
