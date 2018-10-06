@@ -37,6 +37,10 @@ local M = minetest.get_meta
 --
 -- All other nodes are build by means of axis/rotation variants based on param2
 -- (paramtype2 == "facedir").
+--
+-- The 3 free MSB bits of param2 of tube nodes are used to store the number of connections (0..2).
+--
+-- The data of the peer head tube are stored as meta data: "peer_pos" and "peer_dir"
 
 
 local Turn180Deg = {3,4,1,2,6,5}
@@ -99,6 +103,7 @@ local function Tbl(list)
 	return tbl
 end
 
+-- Return val in the range of min and max
 local function range(val, min, max)
 	if val > max then return max end
 	if val < min then return min end
@@ -132,20 +137,20 @@ local function get_next_node(pos, dir)
 	return pos, get_node_lvm(pos)
 end
 
+
 --
 -- Tubelib2 Methods
 --
 
 local Tube = tubelib2.Tube
 
--- check if node has a connection on the given dir
+-- Check if node has a connection on the given dir
 function Tube:connected(pos, dir)
 	local _, node = get_next_node(pos, dir)
 	return self.primary_node_names[node.name] or self.secondary_node_names[node.name]
 end
 
--- The 3 free bits or param2 are used to store the number of connections.
--- return param2 and tube type
+-- Return param2 and tube type ("A"/"S")
 function Tube:encode_param2(dir1, dir2, num_conn)
 	if dir1 > dir2 then
 		dir1, dir2 = dir2, dir1
@@ -154,7 +159,7 @@ function Tube:encode_param2(dir1, dir2, num_conn)
 	return (num_conn * 32) + param2, _type
 end
 
--- return dir1, dir2, num_conn
+-- Return dir1, dir2, num_conn
 function Tube:decode_param2(param2)
 	local val = Param2ToDir[param2 % 32]
 	if val then
@@ -162,29 +167,57 @@ function Tube:decode_param2(param2)
 		local num_conn = math.floor(param2 / 32)
 		return dir1, dir2, num_conn
 	end
-	return nil
 end
 
--- return pos for a primary_node and true if num_conn < 2, else false
+-- Return pos for a primary_node and true if num_conn < 2, else false
 function Tube:friendly_primary_node(pos, dir)
-	-- read node
 	local npos, node = get_next_node(pos, dir)
-	-- tube node with max one connection?
 	local _,_,num_conn = self:decode_param2(node.param2)
 	if self.primary_node_names[node.name] then
+		-- tube node with max one connection?
 		return npos, num_conn < 2
 	end
-	return nil
 end
 
 function Tube:secondary_node(pos, dir)
-	-- read node
 	local npos, node = get_next_node(pos, dir)
 	if self.secondary_node_names[node.name] then
 		return npos
 	end
-	return nil
 end
+
+-- Update meta data and number of connections in param2
+-- pos1 is the node to be updated with the data pos2, dir2, num_tubes
+function Tube:update_head_tube(pos1, pos2, dir2, num_tubes)
+	local _, node = get_next_node(pos1)
+	local d1, d2, num = self:decode_param2(node.param2)
+	num = (self:connected(pos1, d1) and 1 or 0) + (self:connected(pos1, d2) and 1 or 0)
+	node.param2 = self:encode_param2(d1, d2, num)
+	minetest.set_node(pos1, node)	
+	if self.show_infotext then
+		M(pos1):set_string("infotext", P(pos2).." / "..num_tubes.." tubes")
+	end
+	M(pos1):set_string("peer_pos", P(pos2))
+	M(pos1):set_int("peer_dir", dir2)
+end	
+
+-- Add meta data on both tube sides pos1 and pos2
+-- dir1/dir2 are the tube output directions (inventory nodes)
+function Tube:add_meta_data(pos1, pos2, dir1, dir2, num_tubes)
+	self:update_head_tube(pos1, pos2, dir2, num_tubes)
+	self:update_head_tube(pos2, pos1, dir1, num_tubes)
+end
+
+-- Delete meta data on both tube sides
+-- pos is the position of one head node
+function Tube:del_meta_data(pos)
+	local peer_pos = S(M(pos):get_string("peer_pos"))
+	if peer_pos then
+		M(pos):from_table(nil)
+		M(peer_pos):from_table(nil)
+	end
+end
+		
 
 function Tube:fdir(player)
 	local pitch = player:get_look_pitch()
@@ -285,13 +318,16 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	end
 end
 
-
+-- format and return given data as table
 function Tube:tube_data_to_table(pos, dir1, dir2, num_tubes)
 	local param2, ttype = self:encode_param2(dir1, dir2, num_tubes)
 	return {pos = pos, param2 = param2, type = ttype, num_tubes = num_tubes}
 end	
 
 
+-- Determine a tube side without connection, increment the number of connections
+-- and return the new data to be able to update the node: 
+-- new_pos, dir1, dir2, num_connections (1, 2)
 function Tube:add_tube_dir(pos, dir)
 	local npos, node = get_next_node(pos, dir)
 	if self.primary_node_names[node.name] then
@@ -314,7 +350,9 @@ function Tube:add_tube_dir(pos, dir)
 	end
 end
 
-
+-- Decrement the number of tube connections
+-- and return the new data to be able to update the node: 
+-- new_pos, dir1, dir2, num_connections (0, 1)
 function Tube:del_tube_dir(pos, dir)
 	local npos, node = get_next_node(pos, dir)
 	if self.primary_node_names[node.name] then
@@ -323,84 +361,94 @@ function Tube:del_tube_dir(pos, dir)
 	end
 end
 	
+-- Return the param2 stored tube dirs
 function Tube:get_tube_dirs(pos)
-	local node = minetest.get_node(pos)
+	local _, node = get_next_node(pos)
 	if self.primary_node_names[node.name] then
 		local d1, d2 = self:decode_param2(node.param2)
 		return d1, d2
 	end
 end
 
-function Tube:get_next_tube(pos, dir)
-	local npos, node = get_next_node(pos, dir)
-	local dir1, dir2, num = self:decode_param2(node.param2)
-	if self.primary_node_names[node.name] then
-		if Turn180Deg[dir] == dir1 then
-			return npos, dir2
-		else
-			return npos, dir1
+
+-- Go down the tube to the end position and 
+-- return pos, dir to the next node, and num tubes
+function Tube:find_tube_head(pos)
+	local get_next_tube = function(self, pos, dir)
+		-- Return pos and dir to the next node of the tube node at pos/dir
+		local npos, node = get_next_node(pos, dir)
+		local dir1, dir2, num = self:decode_param2(node.param2)
+		if self.primary_node_names[node.name] then
+			if Turn180Deg[dir] == dir1 then
+				return npos, dir2
+			else
+				return npos, dir1
+			end
 		end
 	end
-end
-
-function Tube:find_tube_head(pos)
+		
 	local cnt = 0
-	local dir = nil
+	local dir
+	-- first determine the walk direction
+	local d1, d2 = self:get_tube_dirs(pos)
+	local _, node = get_next_node(pos, d1)
+	if self.primary_node_names[node.name] then
+		dir = d1
+	else
+		dir = d2
+	end
+	
 	while cnt <= self.max_tube_length do
-		local new_pos, new_dir = self:get_next_tube(pos, dir)
+		local new_pos, new_dir = get_next_tube(self, pos, dir)
 		if not new_dir then	break end
+		print(P(new_pos), new_dir)
 		pos, dir = new_pos, new_dir
 		cnt = cnt + 1
 	end
-	return pos, dir
+	return pos, dir, cnt
 end	
 
-
--- Do a correction of param2, delete meta data and
--- return the new pos, dir
-function Tube:repair_next_tube(pos, dir)
-	local npos, node = get_next_node(pos, dir)
+-- Set tube to a 2 connection node without meta data
+function Tube:set_2_conn_tube(pos)
+	local npos, node = get_next_node(pos)
 	if self.primary_node_names[node.name] then
-		local dir1, dir2, num = self:decode_param2(node.param2)
-		if num ~= 2 then
-			node.param2 = self:encode_param2(dir1, dir2, 2)
-			minetest.set_node(npos, node)
-		end
+		local dir1, dir2, _ = self:decode_param2(node.param2)
+		node.param2 = self:encode_param2(dir1, dir2, 2)
+		minetest.set_node(npos, node)
 		M(npos):from_table(nil)
-		if Turn180Deg[dir] == dir1 then
-			return npos, dir2
-		else
-			return npos, dir1
-		end
 	end
 end
 
+-- Do a correction of param2 and delete meta data of all 2-conn-tubes,
+-- update the meta data of the head tubes and 
+-- return head-pos and number of nodes
 function Tube:repair_tube_line(pos, dir)
+	local repair_next_tube = function(self, pos, dir)
+		local npos, node = get_next_node(pos, dir)
+		if self.primary_node_names[node.name] then
+			local dir1, dir2, num = self:decode_param2(node.param2)
+			if num ~= 2 then
+				node.param2 = self:encode_param2(dir1, dir2, 2)
+				minetest.set_node(npos, node)
+			end
+			M(npos):from_table(nil)
+			if Turn180Deg[dir] == dir1 then
+				return npos, dir2
+			else
+				return npos, dir1
+			end
+		end
+	end
+	
 	local cnt = 0
 	if not dir then	return pos, cnt end	
 	while cnt <= self.max_tube_length do
-		local new_pos, new_dir = self:repair_next_tube(pos, dir)
+		local new_pos, new_dir = repair_next_tube(self, pos, dir)
 		if not new_dir then	break end
 		pos, dir = new_pos, new_dir
 		cnt = cnt + 1
 	end
-	return pos, cnt
+	return pos, dir, cnt
 end	
 
--- update meta data and set number of connections to 1 or 0
-function Tube:update_head_tube(pos1, pos2, num_tubes)
-	local _, node = get_next_node(pos1)
-	local dir1, dir2, num = self:decode_param2(node.param2)
-	num = (self:connected(pos1, dir1) and 1 or 0) + (self:connected(pos1, dir2) and 1 or 0)
-	node.param2 = self:encode_param2(dir1, dir2, num)
-	minetest.set_node(pos1, node)	
-	if self.show_infotext then
-		M(pos1):set_string("infotext", P(pos2).." / "..num_tubes.." tubes")
-	end
-	M(pos1):set_string("peer_pos", P(pos2))
-end	
 
-function Tube:add_meta(pos1, pos2, num_tubes)
-	self:update_head_tube(pos1, pos2, num_tubes)
-	self:update_head_tube(pos2, pos1, num_tubes)
-end

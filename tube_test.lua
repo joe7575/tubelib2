@@ -177,9 +177,14 @@ end
 local function repair_tubes(itemstack, placer, pointed_thing)
 	if pointed_thing.type == "node" then
 		local pos = pointed_thing.under
-		local pos1, pos2, cnt1, cnt2 = Tube:repair_tubes(pos)
-		minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] 1: "..P(pos1).." / "..cnt1.." tubes")
-		minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] 2: "..P(pos2).." / "..cnt2.." tubes")
+		if placer:get_player_control().sneak then
+			local end_pos, dir = Tube:get_tube_end_pos(pos)
+			minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] end_pos = "..P(end_pos)..", dir = "..dir)
+		else
+			local pos1, pos2, dir1, dir2, cnt1, cnt2 = Tube:repair_tubes(pos)
+			minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] 1: "..P(pos1)..", dir = "..dir1..", "..cnt1.." tubes")
+			minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] 2: "..P(pos2)..", dir = "..dir2..", "..cnt2.." tubes")
+		end
 	end
 end
 

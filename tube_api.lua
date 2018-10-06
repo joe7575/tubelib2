@@ -47,7 +47,7 @@ function Tube:new(attr)
 	return o
 end
 
--- Register (foreign) tubelib compatible nodes
+-- Register (foreign) tubelib compatible nodes.
 function Tube:add_secondary_node_names(names)
 	for _,name in ipairs(names) do
 		self.secondary_node_names[name] = true
@@ -57,23 +57,26 @@ end
 -- From node to node via tube
 -- Used for item transportation via tubes
 function Tube:get_connected_node_pos(pos, dir)
-	-- update_meta
+	pos, _ = self:get_next_node(pos, dir)
+	pos, dir = self:get_tube_end_pos(pos)
+	pos, _ = self:get_next_node(pos, dir)
 	return pos, dir
 end	
 
--- From tube head to tube head
+-- From tube head to tube head.
+-- Return pos and dir to the connected/next node.
 function Tube:get_tube_end_pos(pos)
 	local spos = M(pos):get_string("peer_pos")
-	if spos then
-		return S(spos)
+	if spos ~= "" then
+		return S(spos), M(pos):get_int("peer_dir")
 	end
-	local npos, num = self:find_tube_head(pos)
-	self:update_head_tube(pos, npos, num)
-	return pos
+	local npos, dir, num = self:find_tube_head(pos)
+	self:update_head_tube(pos, npos, dir, num)
+	return npos, dir
 end
 
 
--- To be called after a tube node is placed
+-- To be called after a tube node is placed.
 function Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
 	local preferred_pos, fdir = self:get_player_data(placer, pointed_thing)
 	local dir1, dir2, num_tubes = self:determine_tube_dirs(pos, preferred_pos, fdir)
@@ -103,7 +106,7 @@ function Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
 end
 
 
--- To be called after a tube node is removed
+-- To be called after a tube node is removed.
 function Tube:update_tubes_after_dig_node(pos, oldnode)
 	local dir1, dir2, num_tubes = self:decode_param2(oldnode.param2)
 	local tbl = {}
@@ -121,17 +124,19 @@ function Tube:update_tubes_after_dig_node(pos, oldnode)
 	return tbl
 end
 
--- To be called from a repair tool
+
+-- To be called from a repair tool in the case of a "WorldEdit" corrupted tube line.
 function Tube:repair_tubes(pos)
-	local dir1, dir2 = self:get_tube_dirs(pos)
-	self:repair_next_tube(pos)
-	local npos1, cnt1 = self:repair_tube_line(pos, dir1)
-	local npos2, cnt2 = self:repair_tube_line(pos, dir2)
-	self:add_meta(npos1, npos2, cnt1+cnt2+1)
-	return npos1, npos2, cnt1, cnt2
+	local d1, d2 = self:get_tube_dirs(pos)
+	self:set_2_conn_tube(pos)
+	local npos1, dir1, cnt1 = self:repair_tube_line(pos, d1)
+	local npos2, dir2, cnt2 = self:repair_tube_line(pos, d2)
+	self:add_meta_data(npos1, npos2, dir1, dir2, cnt1+cnt2+1)
+	return npos1, npos2, dir1, dir2, cnt1, cnt2
 end
 
--- To be called from a repair tool
+
+-- To be called from a repair tool in the case, tube nodes are "unbreakable".
 function Tube:remove_tube(pos, sound)
 	local dir1, dir2 = self:get_tube_dirs(pos)
 	if dir1 and dir2 then
