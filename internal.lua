@@ -13,8 +13,8 @@
 ]]--
 
 -- for lazy programmers
-local P = minetest.pos_to_string
-local S = minetest.string_to_pos
+local S = minetest.pos_to_string
+local P = minetest.string_to_pos
 local M = minetest.get_meta
 
 
@@ -195,9 +195,9 @@ function Tube:update_head_tube(pos1, pos2, dir2, num_tubes)
 	node.param2 = self:encode_param2(d1, d2, num)
 	minetest.set_node(pos1, node)	
 	if self.show_infotext then
-		M(pos1):set_string("infotext", P(pos2).." / "..num_tubes.." tubes")
+		M(pos1):set_string("infotext", S(pos2).." / "..num_tubes.." tubes")
 	end
-	M(pos1):set_string("peer_pos", P(pos2))
+	M(pos1):set_string("peer_pos", S(pos2))
 	M(pos1):set_int("peer_dir", dir2)
 end	
 
@@ -211,7 +211,7 @@ end
 -- Delete meta data on both tube sides
 -- pos is the position of one head node
 function Tube:del_meta_data(pos)
-	local peer_pos = S(M(pos):get_string("peer_pos"))
+	local peer_pos = P(M(pos):get_string("peer_pos"))
 	if peer_pos then
 		M(pos):from_table(nil)
 		M(peer_pos):from_table(nil)
@@ -370,6 +370,19 @@ function Tube:get_tube_dirs(pos)
 	end
 end
 
+-- Jump over the teleport nodes to the next tube node
+function Tube:get_next_teleport_node(pos, dir)
+	local meta = M(pos)
+	local s = meta:get_string("tele_pos")
+	if s ~= "" then
+		local tele_pos = P(s)
+		local tube_dir = M(tele_pos):get_int("tube_dir")
+		if tube_dir ~= 0 then
+			return tele_pos, tube_dir
+		end
+	end
+end
+			
 
 -- Go down the tube to the end position and 
 -- return pos, dir to the next node, and num tubes
@@ -377,14 +390,16 @@ function Tube:find_tube_head(pos)
 	local get_next_tube = function(self, pos, dir)
 		-- Return pos and dir to the next node of the tube node at pos/dir
 		local npos, node = get_next_node(pos, dir)
-		local dir1, dir2, num = self:decode_param2(node.param2)
 		if self.primary_node_names[node.name] then
+			local dir1, dir2, num = self:decode_param2(node.param2)
 			if Turn180Deg[dir] == dir1 then
 				return npos, dir2
 			else
 				return npos, dir1
 			end
 		end
+		
+		return Tube:get_next_teleport_node(npos, dir, node)
 	end
 		
 	local cnt = 0
@@ -401,7 +416,6 @@ function Tube:find_tube_head(pos)
 	while cnt <= self.max_tube_length do
 		local new_pos, new_dir = get_next_tube(self, pos, dir)
 		if not new_dir then	break end
-		print(P(new_pos), new_dir)
 		pos, dir = new_pos, new_dir
 		cnt = cnt + 1
 	end
@@ -438,6 +452,8 @@ function Tube:repair_tube_line(pos, dir)
 				return npos, dir1
 			end
 		end
+		
+		return Tube:get_next_teleport_node(npos, dir, node)
 	end
 	
 	local cnt = 0
@@ -451,4 +467,11 @@ function Tube:repair_tube_line(pos, dir)
 	return pos, dir, cnt
 end	
 
-
+-- Pairing helper function
+function Tube:store_teleport_data(pos, peer_pos)		
+	local meta = M(pos)
+	meta:set_string("tele_pos", S(peer_pos))
+	meta:set_string("channel", nil)
+	meta:set_string("formspec", nil)
+	meta:set_string("infotext", "Connected with "..S(peer_pos))
+end

@@ -13,8 +13,8 @@
 ]]--
 
 -- for lazy programmers
-local P = minetest.pos_to_string
-local S = minetest.string_to_pos
+local S = minetest.pos_to_string
+local P = minetest.string_to_pos
 local M = minetest.get_meta
 
 
@@ -41,6 +41,7 @@ function Tube:new(attr)
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
 		secondary_node_names = Tbl(attr.secondary_node_names or {}),
 		show_infotext = attr.show_infotext or false,
+		pairingList = {}, -- teleporting nodes
 	}
 	setmetatable(o, self)
 	self.__index = self
@@ -68,7 +69,7 @@ end
 function Tube:get_tube_end_pos(pos)
 	local spos = M(pos):get_string("peer_pos")
 	if spos ~= "" then
-		return S(spos), M(pos):get_int("peer_dir")
+		return P(spos), M(pos):get_int("peer_dir")
 	end
 	local npos, dir, num = self:find_tube_head(pos)
 	self:update_head_tube(pos, npos, dir, num)
@@ -89,7 +90,6 @@ function Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
 	if num_tubes >= 1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
 		if npos then
-			--print("update_tubes_after_place_node: d1, d2, num", d1, d2, num)
 			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
 		end
 	end
@@ -97,7 +97,6 @@ function Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
 	if num_tubes >= 2 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
 		if npos then
-			--print("update_tubes_after_place_node: d1, d2, num", d1, d2, num)
 			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
 		end
 	end
@@ -128,11 +127,13 @@ end
 -- To be called from a repair tool in the case of a "WorldEdit" corrupted tube line.
 function Tube:repair_tubes(pos)
 	local d1, d2 = self:get_tube_dirs(pos)
-	self:set_2_conn_tube(pos)
-	local npos1, dir1, cnt1 = self:repair_tube_line(pos, d1)
-	local npos2, dir2, cnt2 = self:repair_tube_line(pos, d2)
-	self:add_meta_data(npos1, npos2, dir1, dir2, cnt1+cnt2+1)
-	return npos1, npos2, dir1, dir2, cnt1, cnt2
+	if d1 and d2 then
+		self:set_2_conn_tube(pos)
+		local npos1, dir1, cnt1 = self:repair_tube_line(pos, d1)
+		local npos2, dir2, cnt2 = self:repair_tube_line(pos, d2)
+		self:add_meta_data(npos1, npos2, dir1, dir2, cnt1+cnt2+1)
+		return npos1, npos2, dir1, dir2, cnt1, cnt2
+	end
 end
 
 
@@ -150,5 +151,45 @@ function Tube:remove_tube(pos, sound)
 		minetest.remove_node(pos)
 		if npos1 then self:repair_tubes(npos1) end
 		if npos2 then self:repair_tubes(npos2) end
+	end
+end
+
+function Tube:prepare_pairing(pos, tube_dir, sFormspec)
+	local meta = M(pos)
+	meta:set_int("tube_dir", tube_dir)
+	meta:set_string("channel", nil)
+	meta:set_string("infotext", "Unconnected")
+	meta:set_string("formspec", sFormspec)
+end
+
+function Tube:pairing(pos, channel)
+	if self.pairingList[channel] and pos ~= self.pairingList[channel] then
+		-- store peer position on both nodes
+		local peer_pos = self.pairingList[channel]
+		self:store_teleport_data(pos, peer_pos)
+		self:store_teleport_data(peer_pos, pos)
+		self.pairingList[channel] = nil
+		return true
+	else
+		self.pairingList[channel] = pos
+		local meta = M(pos)
+		meta:set_string("channel", channel)
+		meta:set_string("infotext", "Unconnected ("..channel..")")
+		return false
+	end
+end
+
+function Tube:stop_pairing(pos, sFormspec)
+	-- unpair peer node
+	local s = M(pos):get_string("peer_pos")
+	if s ~= "" then
+		local peer_pos = P(s)
+		local peer_meta = M(peer_pos)
+		if peer_meta then
+			peer_meta:set_string("channel", nil)
+			peer_meta:set_string("tele_pos", nil)
+			peer_meta:set_string("formspec", sFormspec)
+			peer_meta:set_string("infotext", "Unconnected")
+		end
 	end
 end
