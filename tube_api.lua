@@ -55,38 +55,65 @@ function Tube:add_secondary_node_names(names)
 	end
 end
 
--- From node to node via tube
--- Used for item transportation via tubes
+-- From source node to destination node via tubes.
+-- pos is the source node position, dir the output dir
+-- The returned pos is the destination position, dir
+-- is the direction into the destination node.
 function Tube:get_connected_node_pos(pos, dir)
-	pos, _ = self:get_next_node(pos, dir)
-	pos, dir = self:get_tube_end_pos(pos)
-	pos, _ = self:get_next_node(pos, dir)
-	return pos, dir
-end	
+	local node = {}
+	if self:is_tube_head(pos, dir, node) then
+		local npos, ndir = self:get_peer_tube_head(node)
+		return vector.add(npos, tubelib2.Dir6dToVector[ndir or 0]), ndir
+	end
+	return vector.add(pos, tubelib2.Dir6dToVector[dir or 0]), dir
+end
 
 -- From tube head to tube head.
--- Return pos and dir to the connected/next node.
-function Tube:get_tube_end_pos(pos)
-	local spos = M(pos):get_string("peer_pos")
-	if spos ~= "" then
-		return P(spos), M(pos):get_int("peer_dir")
+-- pos is the tube head position, dir is the direction into the head node.
+-- The returned pos is the peer head position, dir
+-- is the direction out of the peer head node.
+function Tube:get_tube_end_pos(pos, dir)
+	local node = {}
+	if self:is_tube_head(pos, nil, node) then
+		return self:get_peer_tube_head(node)
 	end
-	local npos, dir, num = self:find_tube_head(pos)
-	self:update_head_tube(pos, npos, dir, num)
-	return npos, dir
+	return pos, dir
 end
 
 
 -- To be called after a tube node is placed.
-function Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
+function Tube:update_tubes_after_place_node(pos, dir1, dir2)
+	self:delete_tube_meta_data(pos, dir1, dir2)
+	local tbl = {}
+	
+	if dir1 then
+		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
+		if npos then
+			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+		end
+	end
+	
+	if dir2 then
+		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
+		if npos then
+			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+		end
+	end
+	
+	return tbl
+end
+
+-- To be called after a tube node is placed.
+function Tube:update_tubes_after_place_tube(pos, placer, pointed_thing)
 	local preferred_pos, fdir = self:get_player_data(placer, pointed_thing)
 	local dir1, dir2, num_tubes = self:determine_tube_dirs(pos, preferred_pos, fdir)
 	if dir1 == nil then
 		return {}
 	end
 	
-	local tbl = {self:tube_data_to_table(pos, dir1, dir2, num_tubes)}
+	self:delete_tube_meta_data(pos, dir1, dir2)
 	
+	local tbl = {self:tube_data_to_table(pos, dir1, dir2, num_tubes)}
 	if num_tubes >= 1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
 		if npos then
@@ -104,11 +131,31 @@ function Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
 	return tbl
 end
 
+-- To be called after a secondary node is removed.
+function Tube:update_tubes_after_dig_node(pos, dir1, dir2)
+	local tbl = {}
+	
+	self:delete_tube_meta_data(pos, dir1, dir2)
+	
+	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
+	if npos then
+		tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+	end
+	
+	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
+	if npos then
+		tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+	end
+	
+	return tbl
+end
 
 -- To be called after a tube node is removed.
-function Tube:update_tubes_after_dig_node(pos, oldnode)
+function Tube:update_tubes_after_dig_tube(pos, oldnode, oldmetadata)
 	local dir1, dir2, num_tubes = self:decode_param2(oldnode.param2)
 	local tbl = {}
+	
+	self:delete_tube_meta_data(pos, dir1, dir2, oldmetadata)
 	
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
 	if npos then
@@ -125,9 +172,9 @@ end
 
 
 -- To be called from a repair tool in the case of a "WorldEdit" corrupted tube line.
-function Tube:repair_tubes(pos)
+function Tube:tool_repair_tubes(pos)
 	local d1, d2 = self:get_tube_dirs(pos)
-	if d1 and d2 then
+	if d1 ~= 0 then
 		self:set_2_conn_tube(pos)
 		local npos1, dir1, cnt1 = self:repair_tube_line(pos, d1)
 		local npos2, dir2, cnt2 = self:repair_tube_line(pos, d2)
@@ -138,9 +185,9 @@ end
 
 
 -- To be called from a repair tool in the case, tube nodes are "unbreakable".
-function Tube:remove_tube(pos, sound)
+function Tube:tool_remove_tube(pos, sound)
 	local dir1, dir2 = self:get_tube_dirs(pos)
-	if dir1 and dir2 then
+	if dir1 ~= 0 then
 		minetest.sound_play({
             name=sound},{
             gain=1,
@@ -149,14 +196,18 @@ function Tube:remove_tube(pos, sound)
 		local npos1 = self:friendly_primary_node(pos, dir1)
 		local npos2 = self:friendly_primary_node(pos, dir2)
 		minetest.remove_node(pos)
-		if npos1 then self:repair_tubes(npos1) end
-		if npos2 then self:repair_tubes(npos2) end
+		if npos1 then self:tool_repair_tubes(npos1) end
+		if npos2 then self:tool_repair_tubes(npos2) end
 	end
 end
 
 function Tube:prepare_pairing(pos, tube_dir, sFormspec)
 	local meta = M(pos)
 	meta:set_int("tube_dir", tube_dir)
+	
+	-- break the connection
+	self:delete_tube_meta_data(pos, tube_dir)
+	
 	meta:set_string("channel", nil)
 	meta:set_string("infotext", "Unconnected")
 	meta:set_string("formspec", sFormspec)
@@ -166,8 +217,13 @@ function Tube:pairing(pos, channel)
 	if self.pairingList[channel] and pos ~= self.pairingList[channel] then
 		-- store peer position on both nodes
 		local peer_pos = self.pairingList[channel]
-		self:store_teleport_data(pos, peer_pos)
-		self:store_teleport_data(peer_pos, pos)
+		
+		local tube_dir1 = self:store_teleport_data(pos, peer_pos)
+		local tube_dir2 = self:store_teleport_data(peer_pos, pos)
+		
+		self:delete_tube_meta_data(pos, tube_dir1)
+		self:delete_tube_meta_data(peer_pos, tube_dir2)
+		
 		self.pairingList[channel] = nil
 		return true
 	else
@@ -179,17 +235,22 @@ function Tube:pairing(pos, channel)
 	end
 end
 
-function Tube:stop_pairing(pos, sFormspec)
+function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 	-- unpair peer node
-	local s = M(pos):get_string("peer_pos")
-	if s ~= "" then
-		local peer_pos = P(s)
-		local peer_meta = M(peer_pos)
+	if oldmetadata and oldmetadata.fields and oldmetadata.fields.tele_pos then
+		local tele_pos = P(oldmetadata.fields.tele_pos)
+		local peer_meta = M(tele_pos)
 		if peer_meta then
+			self:delete_tube_meta_data(tele_pos, peer_meta:get_int("tube_dir"))
+			
 			peer_meta:set_string("channel", nil)
 			peer_meta:set_string("tele_pos", nil)
 			peer_meta:set_string("formspec", sFormspec)
 			peer_meta:set_string("infotext", "Unconnected")
 		end
+	end
+	
+	if oldmetadata and oldmetadata.fields then
+		self:delete_tube_meta_data(pos, tonumber(oldmetadata.fields.tube_dir or 0), nil, oldmetadata)
 	end
 end
