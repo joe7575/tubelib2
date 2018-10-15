@@ -185,7 +185,7 @@ function Tube:friendly_primary_node(pos, dir)
 	local _,_,num_conn = self:decode_param2(node.param2)
 	if self.primary_node_names[node.name] then
 		-- tube node with max one connection?
-		return npos, num_conn < 2
+		return npos, (num_conn or 2) < 2
 	end
 end
 
@@ -354,8 +354,8 @@ end
 
 -- format and return given data as table
 function Tube:tube_data_to_table(pos, dir1, dir2, num_tubes)
-	local param2, ttype = self:encode_param2(dir1, dir2, num_tubes)
-	return {pos = pos, param2 = param2, type = ttype, num_tubes = num_tubes}
+	local param2, tube_type = self:encode_param2(dir1, dir2, num_tubes)
+	return pos, param2, tube_type, num_tubes
 end	
 
 

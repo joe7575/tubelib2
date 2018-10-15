@@ -41,6 +41,7 @@ function Tube:new(attr)
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
 		secondary_node_names = Tbl(attr.secondary_node_names or {}),
 		show_infotext = attr.show_infotext or false,
+		clbk_after_place_tube = attr.after_place_tube,
 		pairingList = {}, -- teleporting nodes
 	}
 	setmetatable(o, self)
@@ -82,92 +83,83 @@ end
 
 
 -- To be called after a tube node is placed.
-function Tube:update_tubes_after_place_node(pos, dir1, dir2)
+function Tube:after_place_node(pos, dir1, dir2)
 	self:delete_tube_meta_data(pos, dir1, dir2)
-	local tbl = {}
 	
 	if dir1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
 		if npos then
-			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
 	
 	if dir2 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
 		if npos then
-			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
-	
-	return tbl
 end
 
 -- To be called after a tube node is placed.
-function Tube:update_tubes_after_place_tube(pos, placer, pointed_thing)
+function Tube:after_place_tube(pos, placer, pointed_thing)
 	local preferred_pos, fdir = self:get_player_data(placer, pointed_thing)
 	local dir1, dir2, num_tubes = self:determine_tube_dirs(pos, preferred_pos, fdir)
 	if dir1 == nil then
-		return {}
+		return false
 	end
 	
 	self:delete_tube_meta_data(pos, dir1, dir2)
 	
-	local tbl = {self:tube_data_to_table(pos, dir1, dir2, num_tubes)}
+	self.clbk_after_place_tube(self:tube_data_to_table(pos, dir1, dir2, num_tubes))
+	
 	if num_tubes >= 1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
 		if npos then
-			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
 	
 	if num_tubes >= 2 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
 		if npos then
-			tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
 	
-	return tbl
+	return true
 end
 
 -- To be called after a secondary node is removed.
-function Tube:update_tubes_after_dig_node(pos, dir1, dir2)
-	local tbl = {}
-	
+function Tube:after_dig_node(pos, dir1, dir2)
 	self:delete_tube_meta_data(pos, dir1, dir2)
 	
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
 	if npos then
-		tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 	end
 	
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
 	if npos then
-		tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 	end
-	
-	return tbl
 end
 
 -- To be called after a tube node is removed.
-function Tube:update_tubes_after_dig_tube(pos, oldnode, oldmetadata)
+function Tube:after_dig_tube(pos, oldnode, oldmetadata)
 	local dir1, dir2, num_tubes = self:decode_param2(oldnode.param2)
-	local tbl = {}
 	
 	self:delete_tube_meta_data(pos, dir1, dir2, oldmetadata)
 	
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
 	if npos then
-		tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 	end
 	
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
 	if npos then
-		tbl[#tbl+1] = self:tube_data_to_table(npos, d1, d2, num)
+		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 	end
-	
-	return tbl
 end
 
 

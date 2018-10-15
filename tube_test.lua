@@ -27,6 +27,10 @@ local Tube = tubelib2.Tube:new({
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
 			"tubelib2:source", "tubelib2:teleporter"},
+	after_place_tube = function(pos, param2, tube_type, num_tubes)
+		print("after_place_tube", S(pos), param2, tube_type, num_tubes)
+		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
+	end,
 })
 
 minetest.register_node("tubelib2:tubeS", {
@@ -41,22 +45,15 @@ minetest.register_node("tubelib2:tubeS", {
 	},
 	
 	after_place_node = function(pos, placer, itemstack, pointed_thing)
-		local nodes = Tube:update_tubes_after_place_tube(pos, placer, pointed_thing)
-		if #nodes > 0 then
-			for _,item in ipairs(nodes) do
-				minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-			end
-			return false
-		else
+		if not Tube:after_place_tube(pos, placer, pointed_thing) then
 			minetest.remove_node(pos)
 			return true
 		end
+		return false
 	end,
 	
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
-		for _,item in ipairs(Tube:update_tubes_after_dig_tube(pos, oldnode, oldmetadata)) do
-			minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-		end
+		Tube:after_dig_tube(pos, oldnode, oldmetadata)
 	end,
 	
 	paramtype2 = "facedir", -- important!
@@ -88,9 +85,7 @@ minetest.register_node("tubelib2:tubeA", {
 	},
 	
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
-		for _,item in ipairs(Tube:update_tubes_after_dig_tube(pos, oldnode, oldmetadata)) do
-			minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-		end
+		Tube:after_dig_tube(pos, oldnode, oldmetadata)
 	end,
 	
 	paramtype2 = "facedir", -- important!
@@ -131,19 +126,13 @@ minetest.register_node("tubelib2:source", {
 	after_place_node = function(pos, placer)
 		local tube_dir = ((minetest.dir_to_facedir(placer:get_look_dir()) + 2) % 4) + 1
 		M(pos):set_int("tube_dir", tube_dir)
-		
-		for _,item in ipairs(Tube:update_tubes_after_place_tube(pos, tube_dir)) do
-			minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-		end
-		
+		Tube:after_place_node(pos, tube_dir)		
 		minetest.get_node_timer(pos):start(2)
 	end,
 
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
 		local tube_dir = tonumber(oldmetadata.fields.tube_dir or 0)
-		for _,item in ipairs(Tube:update_tubes_after_dig_node(pos, tube_dir)) do
-			minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-		end
+		Tube:after_dig_node(pos, tube_dir)
 	end,
 	
 	on_timer = function(pos, elapsed)
@@ -191,10 +180,7 @@ minetest.register_node("tubelib2:teleporter", {
 		-- the tube_dir calculation depends on the player look-dir and the hole side of the node
 		local tube_dir = ((minetest.dir_to_facedir(placer:get_look_dir()) + 2) % 4) + 1
 		Tube:prepare_pairing(pos, tube_dir, sFormspec)
-		
-		for _,item in ipairs(Tube:update_tubes_after_place_tube(pos, tube_dir)) do
-			minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-		end
+		Tube:after_place_node(pos, tube_dir)
 	end,
 
 	on_receive_fields = function(pos, formname, fields, player)
@@ -205,11 +191,8 @@ minetest.register_node("tubelib2:teleporter", {
 	
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
 		Tube:stop_pairing(pos, oldmetadata, sFormspec)
-		
 		local tube_dir = tonumber(oldmetadata.fields.tube_dir or 0)
-		for _,item in ipairs(Tube:update_tubes_after_dig_node(pos, tube_dir)) do
-			minetest.set_node(item.pos, {name = "tubelib2:tube"..item.type, param2 = item.param2})
-		end
+		Tube:after_dig_node(pos, tube_dir)
 	end,
 	
 	paramtype2 = "facedir", -- important!
