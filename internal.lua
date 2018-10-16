@@ -255,10 +255,12 @@ end
 		
 function Tube:fdir(player)
 	local pitch = player:get_look_pitch()
-	if pitch > 1.1 then -- up?
+	if pitch > 1.1 and self.allowed_6d_dirs[6] then -- up?
 		return 6
-	elseif pitch < -1.1 then -- down?
+	elseif pitch < -1.1 and self.allowed_6d_dirs[5] then -- down?
 		return 5
+	elseif not self.allowed_6d_dirs[1] then
+		return 6
 	else
 		return minetest.dir_to_facedir(player:get_look_dir()) + 1
 	end
@@ -267,9 +269,9 @@ end
 function Tube:get_player_data(placer, pointed_thing)
 	if placer and pointed_thing and pointed_thing.type == "node" then
 		if placer:get_player_control().sneak then
-			return pointed_thing.under, Tube:fdir(placer)
+			return pointed_thing.under, self:fdir(placer)
 		else
-			return nil, Tube:fdir(placer)
+			return nil, self:fdir(placer)
 		end
 	end
 end
@@ -510,8 +512,6 @@ function Tube:get_peer_tube_head(node_tbl)
 end
 
 function Tube:delete_tube_meta_data(pos, dir1, dir2, oldmetadata)
-	local t = minetest.get_us_time()
-	
 	-- tube with two connections?
 	if dir2 then
 		local res
@@ -539,6 +539,4 @@ function Tube:delete_tube_meta_data(pos, dir1, dir2, oldmetadata)
 			end
 		end
 	end
-	t = minetest.get_us_time() - t
-	print("del time", t)
 end		

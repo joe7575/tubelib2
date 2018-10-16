@@ -22,13 +22,15 @@ local M = minetest.get_meta
 -- Test tubes
 
 local Tube = tubelib2.Tube:new({
+	                -- North, East, South, West, Down, Up
+	allowed_6d_dirs = {true, true, true, true, false, false}, -- horizontal only
+	-- allowed_6d_dirs = {false, false, false, false, true, true},  -- vertical only
 	max_tube_length = 1000, 
-	show_infotext = true,
+	show_infotext = false,
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
 			"tubelib2:source", "tubelib2:teleporter"},
 	after_place_tube = function(pos, param2, tube_type, num_tubes)
-		print("after_place_tube", S(pos), param2, tube_type, num_tubes)
 		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
 	end,
 })
@@ -204,60 +206,6 @@ minetest.register_node("tubelib2:teleporter", {
 	sounds = default.node_sound_glass_defaults(),
 })
 
---local function read_test_type(itemstack, placer, pointed_thing)
---	local param2
---	if pointed_thing.type == "node" then
---		local node = minetest.get_node(pointed_thing.under)	
---		param2 = node.param2
---	else
---		param2 = 0
---	end
---	local num = math.floor(param2/32)
---	local axis = math.floor(param2/4) % 8
---	local rot = param2 % 4	
---	minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] param2 = "..param2.."/"..num.."/"..axis.."/"..rot)
-	
---	return itemstack
---end
-
---local function TEST_determine_tube_dirs(itemstack, placer, pointed_thing)
---	if pointed_thing.type == "node" then
---		local pos = pointed_thing.above
---		local preferred_pos = pointed_thing.under
---		local fdir = Tube:fdir(placer)
---		local dir1, dir2, num_tubes = Tube:determine_tube_dirs(pos, preferred_pos, fdir)
---		print("num_tubes="..num_tubes.." dir1="..(dir1 or "nil").." dir2="..(dir2 or "nil"))
---	end
---end
-
---local function TEST_update_tubes_after_place_node(itemstack, placer, pointed_thing)
---	if pointed_thing.type == "node" then
---		local pos = pointed_thing.above
---		local nodes = Tube:update_tubes_after_place_node(pos, placer, pointed_thing)
---		print("nodes"..dump(nodes))
---	end
---end
-
---local function TEST_add_tube_dir(itemstack, placer, pointed_thing)
---	read_test_type(itemstack, placer, pointed_thing)
---	if pointed_thing.type == "node" then
---		local pos = pointed_thing.above
---		local fdir = Tube:fdir(placer)
---		local npos, d1, d2, num = Tube:add_tube_dir(pos, fdir)
---		print("npos, d1, d2, num", npos and S(npos), d1, d2, num)
---	end
---end
-
---local function TEST_del_tube_dir(itemstack, placer, pointed_thing)
---	read_test_type(itemstack, placer, pointed_thing)
---	if pointed_thing.type == "node" then
---		local pos = pointed_thing.above
---		local fdir = Tube:fdir(placer)
---		local npos, d1, d2, num = Tube:del_tube_dir(pos, fdir)
---		print("npos, d1, d2, num", npos and S(npos), d1, d2, num)
---	end
---end
-
 local function read_param2(pos, player)
 	local node = minetest.get_node(pos)	
 	local num = math.floor(node.param2/32)
@@ -298,7 +246,7 @@ local function remove_tube(itemstack, placer, pointed_thing)
 	end
 end
 
--- Tool for tube workers to crack a tube line
+-- Tool for tube workers to crack a protected tube line
 minetest.register_node("tubelib2:tool", {
 	description = "Tubelib2 Tool",
 	inventory_image = "tubelib2_tool.png",
