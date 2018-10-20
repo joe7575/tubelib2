@@ -44,6 +44,7 @@ local M = minetest.get_meta
 
 
 local Turn180Deg = {[0]=0,3,4,1,2,6,5}
+tubelib2.Turn180Deg = Turn180Deg
 
 -- To calculate param2 based on dir6d information
 local DirToParam2 = {
@@ -189,13 +190,6 @@ function Tube:friendly_primary_node(pos, dir)
 	end
 end
 
-function Tube:secondary_node(pos, dir)
-	local npos, node = self:get_next_node(pos, dir)
-	if self.secondary_node_names[node.name] then
-		return npos
-	end
-end
-
 -- Jump over the teleport nodes to the next tube node
 function Tube:get_next_teleport_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
@@ -216,14 +210,16 @@ function Tube:update_head_tube(pos1, pos2, dir2, num_tubes)
 	local node = get_node_lvm(pos1)
 	if self.primary_node_names[node.name] then
 		local d1, d2, num = self:decode_param2(node.param2)
-		num = (self:connected(pos1, d1) and 1 or 0) + (self:connected(pos1, d2) and 1 or 0)
-		node.param2 = self:encode_param2(d1, d2, num)
-		minetest.set_node(pos1, node)	
-		if self.show_infotext then
-			M(pos1):set_string("infotext", S(pos2).." / "..num_tubes.." tubes")
+		if d1 and d2 then
+			num = (self:connected(pos1, d1) and 1 or 0) + (self:connected(pos1, d2) and 1 or 0)
+			node.param2 = self:encode_param2(d1, d2, num)
+			minetest.set_node(pos1, node)	
+			if self.show_infotext then
+				M(pos1):set_string("infotext", S(pos2).." / "..num_tubes.." tubes")
+			end
+			M(pos1):set_string("peer_pos", S(pos2))
+			M(pos1):set_int("peer_dir", dir2)
 		end
-		M(pos1):set_string("peer_pos", S(pos2))
-		M(pos1):set_int("peer_dir", dir2)
 	end
 end	
 
@@ -231,7 +227,9 @@ end
 -- dir1/dir2 are the tube output directions (inventory nodes)
 function Tube:add_meta_data(pos1, pos2, dir1, dir2, num_tubes)
 	self:update_head_tube(pos1, pos2, dir2, num_tubes)
-	self:update_head_tube(pos2, pos1, dir1, num_tubes)
+	if not vector.equals(pos1, pos2) then
+		self:update_head_tube(pos2, pos1, dir1, num_tubes)
+	end
 end
 
 -- Delete meta data on both tube sides.
@@ -507,10 +505,16 @@ function Tube:get_peer_tube_head(node_tbl)
 	end
 	-- repair tube line
 	local pos2, dir2, cnt = self:find_peer_tube_head(node_tbl)
-	self:add_meta_data(node_tbl.pos, pos2, node_tbl.dir, dir2, cnt)
-	return pos2, dir2
+	if pos2 then
+		self:add_meta_data(node_tbl.pos, pos2, Turn180Deg[node_tbl.dir], dir2, cnt)
+		return pos2, dir2
+	end
 end
 
+-- pos is the position of the removed node
+-- dir1, dir2 are the neighbor sides to be checked for meta data
+-- oldmetadata is also used to check for meta data
+-- If meta data is found (peer_pos), it is used to determine the tube head.
 function Tube:delete_tube_meta_data(pos, dir1, dir2, oldmetadata)
 	-- tube with two connections?
 	if dir2 then

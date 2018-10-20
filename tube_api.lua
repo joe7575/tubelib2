@@ -56,6 +56,27 @@ function Tube:add_secondary_node_names(names)
 	end
 end
 
+-- Check if node at given position is a tube node
+-- If dir == nil then node_pos = pos 
+-- Function returns the new pos or nil
+function Tube:primary_node(pos, dir)
+	local npos, node = self:get_next_node(pos, dir)
+	local _,_,num_conn = self:decode_param2(node.param2)
+	if self.primary_node_names[node.name] then
+		return npos
+	end
+end
+
+-- Check if node at given position is a secondary node
+-- If dir == nil then node_pos = pos 
+-- Function returns the new pos or nil
+function Tube:secondary_node(pos, dir)
+	local npos, node = self:get_next_node(pos, dir)
+	if self.secondary_node_names[node.name] then
+		return npos
+	end
+end
+
 -- From source node to destination node via tubes.
 -- pos is the source node position, dir the output dir
 -- The returned pos is the destination position, dir
@@ -185,11 +206,19 @@ function Tube:tool_remove_tube(pos, sound)
             gain=1,
             max_hear_distance=5,
             loop=false})
-		local npos1 = self:friendly_primary_node(pos, dir1)
-		local npos2 = self:friendly_primary_node(pos, dir2)
 		minetest.remove_node(pos)
-		if npos1 then self:tool_repair_tubes(npos1) end
-		if npos2 then self:tool_repair_tubes(npos2) end
+	
+		self:delete_tube_meta_data(pos, dir1, dir2)
+		
+		local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
+		if npos then
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+		end
+		
+		npos, d1, d2, num = self:del_tube_dir(pos, dir2)
+		if npos then
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+		end
 	end
 end
 

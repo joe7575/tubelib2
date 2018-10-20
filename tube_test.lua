@@ -139,7 +139,8 @@ minetest.register_node("tubelib2:source", {
 	
 	on_timer = function(pos, elapsed)
 		local tube_dir = M(pos):get_int("tube_dir")
-		local dest_pos = Tube:get_connected_node_pos(pos, tube_dir)
+		local dest_pos, dest_dir = Tube:get_connected_node_pos(pos, tube_dir)
+		print("on_timer: dest_pos="..S(dest_pos).."  dest_dir="..dest_dir)
 		local inv = minetest.get_inventory({type="node", pos=dest_pos})
 		local stack = ItemStack("default:dirt")
 		if inv then
