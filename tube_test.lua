@@ -32,6 +32,11 @@ local Tube = tubelib2.Tube:new({
 			"tubelib2:source", "tubelib2:teleporter"},
 	after_place_tube = function(pos, param2, tube_type, num_tubes)
 		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
+		minetest.sound_play({
+            name="default_place_node_glass"},{
+            gain=1,
+            max_hear_distance=5,
+            loop=false})
 	end,
 })
 

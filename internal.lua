@@ -18,31 +18,6 @@ local P = minetest.string_to_pos
 local M = minetest.get_meta
 
 
---
--- Tubelib2 specific 6D directions (1 = North, 2 = East, 3 = South, 4 = West, 5 = Down, 6 = Up)
---
--- All 6D dirs are the view from the node to the outer side
--- Tubes are based on two node types, "angled" and "straight" tubes.
---
---         +-------+          
---        /       /|               +-------+
---       +-------+ |              /       /|
---       |       | |             /       / |
---       |       | |            +-------+  |
---       |       | |            |       |  |
---       |       | |            |       |/ |
---       |       | +            +-------+| +
---       |       |/               |      |/
---       +-------+                +------+ 
---
--- All other nodes are build by means of axis/rotation variants based on param2
--- (paramtype2 == "facedir").
---
--- The 3 free MSB bits of param2 of tube nodes are used to store the number of connections (0..2).
---
--- The data of the peer head tube are stored as meta data: "peer_pos" and "peer_dir"
-
-
 local Turn180Deg = {[0]=0,3,4,1,2,6,5}
 tubelib2.Turn180Deg = Turn180Deg
 
@@ -506,7 +481,7 @@ function Tube:get_peer_tube_head(node_tbl)
 	-- repair tube line
 	local pos2, dir2, cnt = self:find_peer_tube_head(node_tbl)
 	if pos2 then
-		self:add_meta_data(node_tbl.pos, pos2, Turn180Deg[node_tbl.dir], dir2, cnt)
+		self:add_meta_data(node_tbl.pos, pos2, Turn180Deg[node_tbl.dir], dir2, cnt+1)
 		return pos2, dir2
 	end
 end

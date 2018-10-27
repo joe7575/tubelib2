@@ -33,7 +33,7 @@ function Tube:convert_tube_line(pos, dir)
 		local npos, node = self:get_next_node(pos, dir)
 		local dir1, dir2, num = self.convert_tube_clbk(npos, node.name, node.param2)
 		if dir1 then
-			self.clbk_after_place_tube(self:tube_data_to_table(npos, dir1, dir2, num))
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, dir1, dir2 or tubelib2.Turn180Deg[dir1], num))
 			
 			if tubelib2.Turn180Deg[dir] == dir1 then
 				return npos, dir2

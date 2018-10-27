@@ -12,11 +12,17 @@
 
 ]]--
 
+-- Version for compatibility checks, see readme.md/history
+tubelib2.version = 0.2
+
 -- for lazy programmers
-local S = minetest.pos_to_string
-local P = minetest.string_to_pos
 local M = minetest.get_meta
 
+local Dir2Str = {"north", "east", "south", "west", "down", "up"}
+
+function tubelib2.dir_to_string(dir)
+	return Dir2Str[dir]
+end
 
 local function Tbl(list)
 	local tbl = {}
@@ -77,6 +83,18 @@ function Tube:secondary_node(pos, dir)
 	end
 end
 
+-- Used to determine the node side to the tube connection.
+-- Function returns the first found dir value
+-- to a primary node.
+function Tube:get_primary_dir(pos)
+	-- Check all valid positions
+	for dir = 1,6 do
+		if self:primary_node(pos, dir) then
+			return dir
+		end
+	end
+end
+
 -- From source node to destination node via tubes.
 -- pos is the source node position, dir the output dir
 -- The returned pos is the destination position, dir
@@ -88,6 +106,12 @@ function Tube:get_connected_node_pos(pos, dir)
 		return vector.add(npos, tubelib2.Dir6dToVector[ndir or 0]), ndir
 	end
 	return vector.add(pos, tubelib2.Dir6dToVector[dir or 0]), dir
+end
+
+function Tube:beside(pos1, pos2)
+	local pos = vector.subtract(pos1, pos2)
+	local res = pos.x + pos.y + pos.z
+	return res == 1 or res == -1
 end
 
 -- From tube head to tube head.
@@ -103,7 +127,7 @@ function Tube:get_tube_end_pos(pos, dir)
 end
 
 
--- To be called after a tube node is placed.
+-- To be called after a secondary node is placed.
 function Tube:after_place_node(pos, dir1, dir2)
 	self:delete_tube_meta_data(pos, dir1, dir2)
 	
@@ -122,7 +146,21 @@ function Tube:after_place_node(pos, dir1, dir2)
 	end
 end
 
--- To be called after a tube node is placed.
+-- To be called after a crossing node is placed.
+function Tube:after_place_crossing_node(pos)
+	-- Check all valid positions
+	for dir = 1,6 do
+		if self.allowed_6d_dirs[dir] then
+			self:delete_tube_meta_data(pos, dir)
+			local npos, d1, d2, num = self:add_tube_dir(pos, dir)
+			if npos then
+				self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			end
+		end
+	end
+end
+
+-- To be called after a tube/primary node is placed.
 function Tube:after_place_tube(pos, placer, pointed_thing)
 	local preferred_pos, fdir = self:get_player_data(placer, pointed_thing)
 	local dir1, dir2, num_tubes = self:determine_tube_dirs(pos, preferred_pos, fdir)
@@ -163,6 +201,21 @@ function Tube:after_dig_node(pos, dir1, dir2)
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
 	if npos then
 		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+	end
+end
+
+-- To be called after a crossing node is removed.
+function Tube:after_dig_crossing_node(pos)
+	-- Check all valid positions
+	for dir = 1,6 do
+		if self.allowed_6d_dirs[dir] then
+			self:delete_tube_meta_data(pos, dir)
+			
+			local npos, d1, d2, num = self:del_tube_dir(pos, dir)
+			if npos then
+				self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			end
+		end
 	end
 end
 
@@ -259,7 +312,7 @@ end
 function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 	-- unpair peer node
 	if oldmetadata and oldmetadata.fields and oldmetadata.fields.tele_pos then
-		local tele_pos = P(oldmetadata.fields.tele_pos)
+		local tele_pos = minetest.string_to_pos(oldmetadata.fields.tele_pos)
 		local peer_meta = M(tele_pos)
 		if peer_meta then
 			self:delete_tube_meta_data(tele_pos, peer_meta:get_int("tube_dir"))
