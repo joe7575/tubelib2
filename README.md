@@ -63,4 +63,4 @@ default
 ## History
 - 2018-10-20  v0.1  * Tested against hyperloop elevator.
 - 2018-10-27  v0.2  * Tested against and enhanced for the hyperloop mod.
-
+- 2018-10-27  v0.3  * Further improvements.

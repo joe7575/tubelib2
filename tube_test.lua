@@ -30,13 +30,16 @@ local Tube = tubelib2.Tube:new({
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
 			"tubelib2:source", "tubelib2:teleporter"},
-	after_place_tube = function(pos, param2, tube_type, num_tubes)
+	after_place_tube = function(pos, param2, tube_type, num_tubes, tbl)
 		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
-		minetest.sound_play({
-            name="default_place_node_glass"},{
-            gain=1,
-            max_hear_distance=5,
-            loop=false})
+		
+		if not tbl.convert then
+			minetest.sound_play({
+				name="default_place_node_glass"},{
+				gain=1,
+				max_hear_distance=5,
+				loop=false})
+		end
 	end,
 })
 

@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 0.2
+tubelib2.version = 0.3
 
 -- for lazy programmers
 local M = minetest.get_meta
@@ -30,6 +30,32 @@ local function Tbl(list)
 		tbl[item] = true
 	end
 	return tbl
+end
+
+local function after_place_node(self, pos)
+	-- Check all valid positions
+	for dir = 1,6 do
+		if self.allowed_6d_dirs[dir] then
+			self:delete_tube_meta_data(pos, dir)
+			local npos, d1, d2, num = self:add_tube_dir(pos, dir)
+			if npos then
+				self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			end
+		end
+	end
+end
+
+local function after_dig_node(self, pos)
+	-- Check all valid positions
+	for dir = 1,6 do
+		if self.allowed_6d_dirs[dir] then
+			self:delete_tube_meta_data(pos, dir)
+			local npos, d1, d2, num = self:del_tube_dir(pos, dir)
+			if npos then
+				self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			end
+		end
+	end
 end
 
 --
@@ -129,6 +155,11 @@ end
 
 -- To be called after a secondary node is placed.
 function Tube:after_place_node(pos, dir1, dir2)
+	if not dir1 and not dir2 then
+		after_place_node(self, pos)
+		return
+	end
+	
 	self:delete_tube_meta_data(pos, dir1, dir2)
 	
 	if dir1 then
@@ -146,19 +177,6 @@ function Tube:after_place_node(pos, dir1, dir2)
 	end
 end
 
--- To be called after a crossing node is placed.
-function Tube:after_place_crossing_node(pos)
-	-- Check all valid positions
-	for dir = 1,6 do
-		if self.allowed_6d_dirs[dir] then
-			self:delete_tube_meta_data(pos, dir)
-			local npos, d1, d2, num = self:add_tube_dir(pos, dir)
-			if npos then
-				self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
-			end
-		end
-	end
-end
 
 -- To be called after a tube/primary node is placed.
 function Tube:after_place_tube(pos, placer, pointed_thing)
@@ -191,6 +209,11 @@ end
 
 -- To be called after a secondary node is removed.
 function Tube:after_dig_node(pos, dir1, dir2)
+	if not dir1 and not dir2 then
+		after_dig_node(self, pos)
+		return
+	end
+	
 	self:delete_tube_meta_data(pos, dir1, dir2)
 	
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
@@ -201,21 +224,6 @@ function Tube:after_dig_node(pos, dir1, dir2)
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
 	if npos then
 		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
-	end
-end
-
--- To be called after a crossing node is removed.
-function Tube:after_dig_crossing_node(pos)
-	-- Check all valid positions
-	for dir = 1,6 do
-		if self.allowed_6d_dirs[dir] then
-			self:delete_tube_meta_data(pos, dir)
-			
-			local npos, d1, d2, num = self:del_tube_dir(pos, dir)
-			if npos then
-				self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
-			end
-		end
 	end
 end
 
