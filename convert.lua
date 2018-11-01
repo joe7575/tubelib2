@@ -16,6 +16,9 @@
 
 ]]--
 
+-- for lazy programmers
+local M = minetest.get_meta
+
 local Tube = tubelib2.Tube
 
 function Tube:on_convert_tube(convert_tube_clbk)
@@ -33,9 +36,8 @@ function Tube:convert_tube_line(pos, dir)
 		local npos, node = self:get_next_node(pos, dir)
 		local dir1, dir2, num = self.convert_tube_clbk(npos, node.name, node.param2)
 		if dir1 then
-			dir2 = dir2 or tubelib2.Turn180Deg[dir1]
-			self.clbk_after_place_tube(
-				self:tube_data_to_table(npos, dir1, dir2, num), {convert = true})
+			self.clbk_after_place_tube(self:tube_data_to_table(npos, dir1, 
+				dir2 or tubelib2.Turn180Deg[dir1], num))
 			if tubelib2.Turn180Deg[dir] == dir1 then
 				return npos, dir2
 			else
@@ -56,9 +58,13 @@ function Tube:convert_tube_line(pos, dir)
 end	
 
 function Tube:set_pairing(pos, peer_pos)
+	
+	M(pos):set_int("tube_dir", self:get_primary_dir(pos))
+	M(peer_pos):set_int("tube_dir", self:get_primary_dir(peer_pos))
+	
 	local tube_dir1 = self:store_teleport_data(pos, peer_pos)
 	local tube_dir2 = self:store_teleport_data(peer_pos, pos)
-	
+
 	self:delete_tube_meta_data(pos, tube_dir1)
 	self:delete_tube_meta_data(peer_pos, tube_dir2)
 end
