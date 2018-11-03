@@ -114,6 +114,30 @@ end
 
 local Tube = tubelib2.Tube
 
+-- Check if node has a connection on the given dir
+function Tube:connected(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = get_node_lvm(npos)
+	return self.primary_node_names[node.name] 
+		or self.secondary_node_names[node.name]
+		or self.legacy_node_names[node.name]
+end
+
+-- Determine dirs via surrounding nodes
+function Tube:determine_dir1_dir2_and_num_conn(pos)
+	local dirs = {}
+	for dir = 1, 6 do
+		if self:connected(pos, dir) then
+			dirs[#dirs+1] = dir
+		end
+	end
+	if #dirs == 1 then
+		return dirs[1], nil, 1
+	elseif #dirs == 2 then
+		return dirs[1], dirs[2], 2
+	end
+end
+
 -- Return param2 and tube type ("A"/"S")
 function Tube:encode_param2(dir1, dir2, num_conn)
 	if dir1 > dir2 then
@@ -124,13 +148,16 @@ function Tube:encode_param2(dir1, dir2, num_conn)
 end
 
 -- Return dir1, dir2, num_conn
-function Tube:decode_param2(param2)
+function Tube:decode_param2(pos, param2)
 	local val = Param2ToDir[param2 % 32]
 	if val then
 		local dir1, dir2 = math.floor(val / 10), val % 10
 		local num_conn = math.floor(param2 / 32)
 		return dir1, dir2, num_conn
 	end
+	-- determine dirs via surrounding nodes
+	return self:determine_dir1_dir2_and_num_conn(pos)
+
 end
 
 -- Return node next to pos in direction 'dir'
@@ -139,27 +166,20 @@ function Tube:get_next_node(pos, dir)
 	return npos, get_node_lvm(npos)
 end
 
--- Check if node has a connection on the given dir
-function Tube:connected(pos, dir)
-	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local node = get_node_lvm(npos)
-	return self.primary_node_names[node.name] or self.secondary_node_names[node.name]
-end
-
--- Return the param2 stored tube dirs or 0,0
+-- Return the param2 stored tube dirs or 5,6
 function Tube:get_tube_dirs(pos)
 	local node = get_node_lvm(pos)
 	if self.primary_node_names[node.name] then
-		return self:decode_param2(node.param2)
+		return self:decode_param2(pos, node.param2)
 	end
-	return 0,0
+	return 5,6
 end
 
 -- Return pos for a primary_node and true if num_conn < 2, else false
 function Tube:friendly_primary_node(pos, dir)
 	local npos, node = self:get_next_node(pos, dir)
-	local _,_,num_conn = self:decode_param2(node.param2)
 	if self.primary_node_names[node.name] then
+		local _,_,num_conn = self:decode_param2(npos, node.param2)
 		-- tube node with max one connection?
 		return npos, (num_conn or 2) < 2
 	end
@@ -184,7 +204,7 @@ end
 function Tube:update_head_tube(pos1, pos2, dir2, num_tubes)
 	local node = get_node_lvm(pos1)
 	if self.primary_node_names[node.name] then
-		local d1, d2, num = self:decode_param2(node.param2)
+		local d1, d2, num = self:decode_param2(pos1, node.param2)
 		if d1 and d2 then
 			num = (self:connected(pos1, d1) and 1 or 0) + (self:connected(pos1, d2) and 1 or 0)
 			node.param2 = self:encode_param2(d1, d2, num)
@@ -340,8 +360,7 @@ end
 function Tube:add_tube_dir(pos, dir)
 	local npos, node = self:get_next_node(pos, dir)
 	if self.primary_node_names[node.name] then
-		local d1, d2, num = self:decode_param2(node.param2)
-		if not num then return end
+		local d1, d2, num = self:decode_param2(npos, node.param2)
 		-- not already connected to the new tube?
 		dir = Turn180Deg[dir]
 		if d1 ~= dir and dir ~= d2 then
@@ -366,8 +385,7 @@ end
 function Tube:del_tube_dir(pos, dir)
 	local npos, node = self:get_next_node(pos, dir)
 	if self.primary_node_names[node.name] then
-		local d1, d2, num = self:decode_param2(node.param2)
-		if not num then return end
+		local d1, d2, num = self:decode_param2(npos, node.param2)
 		return npos, d1, d2, math.max(num - 1, 0)
 	end
 end
@@ -377,7 +395,8 @@ end
 function Tube:is_tube_head(pos, dir, out_tbl)
 	out_tbl.pos, out_tbl.node = self:get_next_node(pos, dir)
 	if self.primary_node_names[out_tbl.node.name] then
-		local dir1, dir2, num_conn = self:decode_param2(out_tbl.node.param2)
+		local dir1, dir2, num_conn = 
+				self:decode_param2(out_tbl.pos, out_tbl.node.param2)
 		if Turn180Deg[dir] == dir1 then
 			out_tbl.dir = dir2
 		else
@@ -395,7 +414,7 @@ function Tube:find_peer_tube_head(node_tbl)
 		-- Return pos and dir to the next node of the tube node at pos/dir
 		local npos, node = self:get_next_node(pos, dir)
 		if self.primary_node_names[node.name] then
-			local dir1, dir2, num = self:decode_param2(node.param2)
+			local dir1, dir2, num = self:decode_param2(npos, node.param2)
 			if Turn180Deg[dir] == dir1 then
 				return npos, dir2
 			else
@@ -419,14 +438,26 @@ function Tube:find_peer_tube_head(node_tbl)
 	return pos, dir, cnt
 end	
 
--- Set tube to a 2 connection node without meta data
-function Tube:set_2_conn_tube(pos)
-	local npos, node = self:get_next_node(pos)
+function Tube:determine_next_node(pos, dir)
+	local npos, node = self:get_next_node(pos, dir)
 	if self.primary_node_names[node.name] then
-		local dir1, dir2, _ = self:decode_param2(node.param2)
-		node.param2 = self:encode_param2(dir1, dir2, 2)
-		minetest.set_node(npos, node)
-		M(npos):from_table(nil)
+		-- determine dirs on two ways
+		local da1,da2,numa = self:decode_param2(npos, node.param2)
+		local db1,db2,numb = self:determine_dir1_dir2_and_num_conn(npos)		
+		-- both identical?
+		if da1 == db1 and da2 == db2 then
+			return npos, da1, da2
+		end
+		-- test if stored dirs point to valid nodes
+		if self:connected(npos, da1) and self:connected(npos, da2) then
+			return npos, da1, da2
+		end
+		-- use and store the determined dirs
+		if db1 and db2 then
+			node.param2 = self:encode_param2(db1,db2,numb)
+			minetest.set_node(npos, node)
+			return npos, db1, db2
+		end
 	end
 end
 
@@ -435,13 +466,8 @@ end
 -- return head-pos and number of nodes
 function Tube:repair_tube_line(pos, dir)
 	local repair_next_tube = function(self, pos, dir)
-		local npos, node = self:get_next_node(pos, dir)
-		if self.primary_node_names[node.name] then
-			local dir1, dir2, num = self:decode_param2(node.param2)
-			if num ~= 2 then
-				node.param2 = self:encode_param2(dir1, dir2, 2)
-				minetest.set_node(npos, node)
-			end
+		local npos, dir1, dir2 = self:determine_next_node(pos, dir)
+		if dir1 then
 			M(npos):from_table(nil)
 			if Turn180Deg[dir] == dir1 then
 				return npos, dir2
@@ -449,7 +475,7 @@ function Tube:repair_tube_line(pos, dir)
 				return npos, dir1
 			end
 		end
-		return self:get_next_teleport_node(npos)
+		return self:get_next_teleport_node(pos, dir)
 	end
 	
 	local cnt = 0
@@ -473,7 +499,7 @@ function Tube:store_teleport_data(pos, peer_pos)
 	return meta:get_int("tube_dir")
 end
 
-function Tube:get_peer_tube_head(node_tbl)
+function Tube:get_peer_tube_head(node_tbl, dir)
 	-- if meta data is available, return peer_pos, peer_pos
 	local meta = M(node_tbl.pos)
 	local spos = meta:get_string("peer_pos")
@@ -483,7 +509,7 @@ function Tube:get_peer_tube_head(node_tbl)
 	-- repair tube line
 	local pos2, dir2, cnt = self:find_peer_tube_head(node_tbl)
 	if pos2 then
-		self:add_meta_data(node_tbl.pos, pos2, Turn180Deg[node_tbl.dir], dir2, cnt+1)
+		self:add_meta_data(node_tbl.pos, pos2, Turn180Deg[dir], dir2, cnt+1)
 		return pos2, dir2
 	end
 end

@@ -25,30 +25,39 @@ function Tube:on_convert_tube(convert_tube_clbk)
 	self.convert_tube_clbk = convert_tube_clbk
 end
 
-function Tube:convert_to_tubelib2(pos1, dir1)
-	local pos2, dir2, cnt = self:convert_tube_line(pos1, dir1)
-	self:add_meta_data(pos1, pos2, dir1, dir2, cnt)
+-- Register legacy tube nodes.
+function Tube:add_legacy_node_names(names)
+	for _,name in ipairs(names) do
+		self.legacy_node_names[name] = true
+	end
 end
 
 
 function Tube:convert_tube_line(pos, dir)
 	local convert_next_tube = function(self, pos, dir)
 		local npos, node = self:get_next_node(pos, dir)
-		local dir1, dir2, num = self.convert_tube_clbk(npos, node.name, node.param2)
-		if dir1 then
-			self.clbk_after_place_tube(self:tube_data_to_table(npos, dir1, 
-				dir2 or tubelib2.Turn180Deg[dir1], num))
-			if tubelib2.Turn180Deg[dir] == dir1 then
-				return npos, dir2
+		if self.legacy_node_names[node.name]  then
+			local dir1, dir2, num
+			if self.convert_tube_clbk then
+				dir1, dir2, num = self.convert_tube_clbk(npos, node.name, node.param2)
 			else
-				return npos, dir1
+				dir1, dir2, num = self:determine_dir1_dir2_and_num_conn(npos)
+			end
+			if dir1 then
+				self.clbk_after_place_tube(self:tube_data_to_table(npos, dir1, 
+					dir2 or tubelib2.Turn180Deg[dir1], num))
+				if tubelib2.Turn180Deg[dir] == dir1 then
+					return npos, dir2
+				else
+					return npos, dir1
+				end
 			end
 		end
 	end
 	
 	local cnt = 0
 	if not dir then	return pos, cnt end	
-	while cnt <= self.max_tube_length do
+	while cnt <= 100000 do
 		local new_pos, new_dir = convert_next_tube(self, pos, dir)
 		if not new_dir then	break end
 		pos, dir = new_pos, new_dir

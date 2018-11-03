@@ -72,6 +72,7 @@ function Tube:new(attr)
 		max_tube_length = attr.max_tube_length or 1000, 
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
 		secondary_node_names = Tbl(attr.secondary_node_names or {}),
+		legacy_node_names = Tbl(attr.legacy_node_names or {}),
 		show_infotext = attr.show_infotext or false,
 		clbk_after_place_tube = attr.after_place_tube,
 		pairingList = {}, -- teleporting nodes
@@ -93,7 +94,6 @@ end
 -- Function returns the new pos or nil
 function Tube:primary_node(pos, dir)
 	local npos, node = self:get_next_node(pos, dir)
-	local _,_,num_conn = self:decode_param2(node.param2)
 	if self.primary_node_names[node.name] then
 		return npos
 	end
@@ -128,7 +128,7 @@ end
 function Tube:get_connected_node_pos(pos, dir)
 	local node = {}
 	if self:is_tube_head(pos, dir, node) then
-		local npos, ndir = self:get_peer_tube_head(node)
+		local npos, ndir = self:get_peer_tube_head(node, dir)
 		return vector.add(npos, tubelib2.Dir6dToVector[ndir or 0]), ndir
 	end
 	return vector.add(pos, tubelib2.Dir6dToVector[dir or 0]), dir
@@ -147,7 +147,7 @@ end
 function Tube:get_tube_end_pos(pos, dir)
 	local node = {}
 	if self:is_tube_head(pos, nil, node) then
-		return self:get_peer_tube_head(node)
+		return self:get_peer_tube_head(node, dir)
 	end
 	return pos, dir
 end
@@ -229,7 +229,7 @@ end
 
 -- To be called after a tube node is removed.
 function Tube:after_dig_tube(pos, oldnode, oldmetadata)
-	local dir1, dir2, num_tubes = self:decode_param2(oldnode.param2)
+	local dir1, dir2, num_tubes = self:decode_param2(pos, oldnode.param2)
 	
 	self:delete_tube_meta_data(pos, dir1, dir2, oldmetadata)
 	
@@ -245,16 +245,16 @@ function Tube:after_dig_tube(pos, oldnode, oldmetadata)
 end
 
 
--- To be called from a repair tool in the case of a "WorldEdit" corrupted tube line.
+-- To be called from a repair tool in the case of a "WorldEdit" or with
+-- legacy nodes corrupted tube line.
 function Tube:tool_repair_tubes(pos)
-	local d1, d2 = self:get_tube_dirs(pos)
-	if d1 ~= 0 then
-		self:set_2_conn_tube(pos)
-		local npos1, dir1, cnt1 = self:repair_tube_line(pos, d1)
-		local npos2, dir2, cnt2 = self:repair_tube_line(pos, d2)
-		self:add_meta_data(npos1, npos2, dir1, dir2, cnt1+cnt2+1)
-		return npos1, npos2, dir1, dir2, cnt1, cnt2
-	end
+	-- determine the dirs from pointed pos
+	local npos, d1, d2 = self:determine_next_node(pos)
+	M(pos):from_table(nil)  -- delete meta data
+	local npos1, dir1, cnt1 = self:repair_tube_line(pos, d1)
+	local npos2, dir2, cnt2 = self:repair_tube_line(pos, d2)
+	self:add_meta_data(npos1, npos2, dir1, dir2, cnt1+cnt2+1)
+	return npos1, npos2, d1, d2, cnt1, cnt2
 end
 
 
