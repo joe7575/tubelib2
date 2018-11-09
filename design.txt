@@ -55,52 +55,90 @@ dir1/dir2     1/2                1/4              2/3                3/4
 axis/rot      2/3                3/2              1/3                1/1
                                
  
-
+####################################################
 
 after_place_node()
-	Tube:update_tubes_after_place_node()
-		get_player_data()
-		determine_tube_dirs()
-			friendly_primary_node()
-		tube_data_to_table()
-		add_tube_dir()
-			del_meta_data()
-			get_next_node()
-			decode_param2()
+	update_after_place_node()
+	get_meta()
+	repair_tube_line()
+	get_pos()
+	update_secondary_node()
+
+after_place_tube()
+	update_after_place_tube()
+	del_meta()
+	repair_tube_line()
+	add_meta()
+	update_secondary_node()
 
 after_dig_node()
-	Tube:update_tubes_after_dig_node()
-		decode_param2()
-		del_tube_dir()
-			del_meta_data()
-			decode_param2()
-		tube_data_to_table()
+	update_after_dig_node()
+	get_meta()
+	repair_tube_line()
+	get_pos()
+	add_meta()
+	update_secondary_node()
 
-on_timer()
-	Tube:get_connected_node_pos()
+after_dig_tube()
+	update_after_dig_tube()
+	get_meta()
+	repair_tube_line()
+	get_pos()
+	add_meta()
+	update_secondary_node()
 
-Wifi:after_place_node()
-	Tube:prepare_pairing()
-		del_meta_data()
+get_connected_node_pos()
+	get_meta()
+	repair_tube_line()
+	get_pos()
 
-Wifi:on_receive_fields()
-	Tube:pairing()
-		store_teleport_data()
-			del_meta_data()
+tool_repair_tubes()
+	determine_dirs()
+	repair_tube_line()
+	add_meta()
+	update_secondary_node()
 
-Wifi:on_destruct()
-	Tube:stop_pairing()
-		del_meta_data()
+tool_remove_tube()
+	remove_tube()
+	repair_tube_line()
+	get_pos()
+	add_meta()
+	update_secondary_node()
 
-Tool:repair_tubes()
-	Tube:repair_tubes()
-		get_tube_dirs()
-		repair_tube_line()
-		add_meta_data()
-			update_head_tube()
+#####################################################################
 
-Tool:remove_tube()
-	Tube:remove_tube()
-		get_tube_dirs()
-		friendly_primary_node()
-		repair_tubes()
+primary_node()
+secondary_node()
+get_primary_dir()
+get_pos()
+
+del_meta()
+get_meta()
+add_meta()
+
+repair_tube_line()
+update_secondary_node()
+
+update_after_place_node()
+update_after_dig_node()
+update_after_place_tube()
+update_after_dig_tube()
+
+#####################################################################
+
+
+
+Neuer Ansatz
+============
+
++------+                 +------+
+|peer->|                 |<-peer|
+|      |<--------------->|      |
+|dir-> |                 | <-dir|
++------+                 +------+
+
+Beim Setzen eines Nodes x werden immer die Meta-Daten in f1 und f2 aktualisiert 
+sowie die Secundary Update-Funktion von S1 und S2 aufgerufen.
+
+[S1][f1]----[n1] x [n2]----[f2][S2]
+

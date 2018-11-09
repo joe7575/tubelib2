@@ -35,7 +35,7 @@ end
 
 function Tube:convert_tube_line(pos, dir)
 	local convert_next_tube = function(self, pos, dir)
-		local npos, node = self:get_next_node(pos, dir)
+		local npos, node = self:get_node(pos, dir)
 		if self.legacy_node_names[node.name]  then
 			local dir1, dir2, num
 			if self.convert_tube_clbk then

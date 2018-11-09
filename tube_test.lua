@@ -23,20 +23,20 @@ local M = minetest.get_meta
 
 local Tube = tubelib2.Tube:new({
 	                -- North, East, South, West, Down, Up
-	allowed_6d_dirs = {true, true, true, true, false, false}, -- horizontal only
-	-- allowed_6d_dirs = {false, false, false, false, true, true},  -- vertical only
+	dirs_to_check = {1,2,3,4}, -- horizontal only
+	-- dirs_to_check = {5,6},  -- vertical only
 	max_tube_length = 1000, 
 	show_infotext = false,
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
-			"tubelib2:source", "tubelib2:teleporter"},
+			"tubelib2:source", "tubelib2:junction", "tubelib2:teleporter"},
 	after_place_tube = function(pos, param2, tube_type, num_tubes, tbl)
 		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
-		minetest.sound_play({
-			name="default_place_node_glass"},{
-			gain=1,
-			max_hear_distance=5,
-			loop=false})
+--		minetest.sound_play({
+--			name="default_place_node_glass"},{
+--			gain=1,
+--			max_hear_distance=5,
+--			loop=false})
 	end,
 })
 
@@ -71,7 +71,6 @@ minetest.register_node("tubelib2:tubeS", {
 			{-2/8, -2/8, -4/8,  2/8, 2/8, 4/8},
 		},
 	},
-	node_placement_prediction = "", -- important!
 	on_rotate = screwdriver.disallow, -- important!
 	paramtype = "light",
 	sunlight_propagates = true,
@@ -104,7 +103,7 @@ minetest.register_node("tubelib2:tubeA", {
 			{-2/8, -2/8, -4/8,  2/8, 2/8, -2/8},
 		},
 	},
-	--on_rotate = screwdriver.disallow, -- important!
+	on_rotate = screwdriver.disallow, -- important!
 	paramtype = "light",
 	sunlight_propagates = true,
 	is_ground_content = false,
@@ -133,13 +132,13 @@ minetest.register_node("tubelib2:source", {
 	after_place_node = function(pos, placer)
 		local tube_dir = ((minetest.dir_to_facedir(placer:get_look_dir()) + 2) % 4) + 1
 		M(pos):set_int("tube_dir", tube_dir)
-		Tube:after_place_node(pos, tube_dir)		
+		Tube:after_place_node(pos, {tube_dir})		
 		minetest.get_node_timer(pos):start(2)
 	end,
 
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
 		local tube_dir = tonumber(oldmetadata.fields.tube_dir or 0)
-		Tube:after_dig_node(pos, tube_dir)
+		Tube:after_dig_node(pos, {tube_dir})
 	end,
 	
 	on_timer = function(pos, elapsed)
@@ -172,6 +171,42 @@ minetest.register_node("tubelib2:source", {
 	sounds = default.node_sound_glass_defaults(),
 })
 
+minetest.register_node("tubelib2:junction", {
+	description = "Tubelib2 Junction",
+	tiles = {
+		'tubelib2_conn.png',
+	},
+
+	after_place_node = function(pos, placer, itemstack, pointed_thing)
+		local meta = minetest.get_meta(pos)
+		meta:set_string("infotext", "Position "..S(pos))
+		Tube:after_place_node(pos)
+	end,
+
+	after_dig_node = function(pos, oldnode, oldmetadata, digger)
+		Tube:after_dig_node(pos)
+	end,
+	
+	tubelib2_on_update = function(pos, peer_pos, peer_dir)
+		if Tube:secondary_node(peer_pos) then
+			local sdir = tubelib2.dir_to_string(peer_dir)
+			local node = minetest.get_node(peer_pos)
+			print(S(pos).." connected with "..node.name)
+		else
+			local sdir = tubelib2.dir_to_string(peer_dir)
+			print(S(pos).." connected with "..S(peer_pos))
+		end
+	end,
+	
+	paramtype2 = "facedir", -- important!
+	on_rotate = screwdriver.disallow, -- important!
+	paramtype = "light",
+	sunlight_propagates = true,
+	is_ground_content = false,
+	groups = {crumbly = 3, cracky = 3, snappy = 3},
+	sounds = default.node_sound_glass_defaults(),
+})
+
 minetest.register_node("tubelib2:teleporter", {
 	description = "Tubelib2 Teleporter",
 	tiles = {
@@ -188,7 +223,7 @@ minetest.register_node("tubelib2:teleporter", {
 		-- the tube_dir calculation depends on the player look-dir and the hole side of the node
 		local tube_dir = ((minetest.dir_to_facedir(placer:get_look_dir()) + 2) % 4) + 1
 		Tube:prepare_pairing(pos, tube_dir, sFormspec)
-		Tube:after_place_node(pos, tube_dir)
+		Tube:after_place_node(pos, {tube_dir})
 	end,
 
 	on_receive_fields = function(pos, formname, fields, player)
@@ -200,7 +235,7 @@ minetest.register_node("tubelib2:teleporter", {
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
 		Tube:stop_pairing(pos, oldmetadata, sFormspec)
 		local tube_dir = tonumber(oldmetadata.fields.tube_dir or 0)
-		Tube:after_dig_node(pos, tube_dir)
+		Tube:after_dig_node(pos, {tube_dir})
 	end,
 	
 	paramtype2 = "facedir", -- important!
@@ -220,23 +255,27 @@ local function read_param2(pos, player)
 	minetest.chat_send_player(player:get_player_name(), "[Tubelib2] param2 = "..node.param2.."/"..num.."/"..axis.."/"..rot)
 end
 
+local function chat_message(dir, cnt, peer_pos, peer_dir)
+	local sdir = tubelib2.dir_to_string(dir)
+	if Tube:secondary_node(peer_pos, peer_dir) then
+		local npos, node = Tube:get_node(peer_pos, peer_dir)
+		return "[Tubelib2] To the "..sdir..": "..cnt.." tube nodes to "..node.name.." at "..S(npos)
+	else
+		return "[Tubelib2] To the "..sdir..": "..cnt.." tube nodes to "..S(peer_pos)
+	end
+end
+
 local function repair_tubes(itemstack, placer, pointed_thing)
 	if pointed_thing.type == "node" then
 		local pos = pointed_thing.under
-		if placer:get_player_control().sneak then
-			local end_pos, dir = Tube:get_tube_end_pos(pos, 0)
-			if end_pos and dir then
-				minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] end_pos = "..S(end_pos)..", dir = "..dir)
-			end
-		else
-			local t = minetest.get_us_time()
-			local pos1, pos2, dir1, dir2, cnt1, cnt2 = Tube:tool_repair_tubes(pos)
-			t = minetest.get_us_time() - t
-			print("time", t)
-			if pos1 and pos2 then
-				minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] 1: "..S(pos1)..", dir = "..dir1..", "..cnt1.." tubes")
-				minetest.chat_send_player(placer:get_player_name(), "[Tubelib2] 2: "..S(pos2)..", dir = "..dir2..", "..cnt2.." tubes")
-			end
+		local t = minetest.get_us_time()
+		local dir1, dir2, fpos1, fpos2, fdir1, fdir2, cnt1, cnt2 = 
+				Tube:tool_repair_tube(pos, placer, pointed_thing)
+		t = minetest.get_us_time() - t
+		print("time", t)
+		if fpos1 and fpos2 then
+			minetest.chat_send_player(placer:get_player_name(), chat_message(dir1, cnt1, fpos1, fdir1))
+			minetest.chat_send_player(placer:get_player_name(), chat_message(dir2, cnt2, fpos2, fdir2))
 		end
 	end
 end

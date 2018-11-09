@@ -43,9 +43,8 @@ The 3 free MSB bits of param2 of tube nodes are used to store the number of conn
 
 The data of the peer head tube are stored as meta data: "peer_pos" and "peer_dir"
 
-Tubelib2 provides no update mechanism for connected "secondary" nodes.
-That means, all secondary nodes have to check their surrounding for any changes, 
-based on player interaction and/or on LBM basis.
+Tubelib2 provides an update mechanism for connected "secondary" nodes. A callback function
+"tubelib2_on_update" will be called for every change on the connected tubes.
 
 
 
@@ -64,3 +63,4 @@ default
 - 2018-10-20  v0.1  * Tested against hyperloop elevator.
 - 2018-10-27  v0.2  * Tested against and enhanced for the hyperloop mod.
 - 2018-10-27  v0.3  * Further improvements.
+- 2018-11-09  v0.4  * on_update function for secondary nodes introduced
