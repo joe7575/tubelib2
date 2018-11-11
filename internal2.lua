@@ -183,6 +183,11 @@ function Tube:decode_param2(pos, param2)
 
 end
 
+-- No connection to both sides
+function Tube:first_placed_node(pos, param2)
+	return math.floor(param2 / 32) == 0
+end
+
 -- Return node next to pos in direction 'dir'
 function Tube:get_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])

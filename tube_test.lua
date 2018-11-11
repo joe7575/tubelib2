@@ -23,15 +23,16 @@ local M = minetest.get_meta
 
 local Tube = tubelib2.Tube:new({
 	                -- North, East, South, West, Down, Up
-	dirs_to_check = {1,2,3,4}, -- horizontal only
+	-- dirs_to_check = {1,2,3,4}, -- horizontal only
 	-- dirs_to_check = {5,6},  -- vertical only
+	dirs_to_check = {1,2,3,4,5,6},
 	max_tube_length = 1000, 
 	show_infotext = false,
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
 			"tubelib2:source", "tubelib2:junction", "tubelib2:teleporter"},
 	after_place_tube = function(pos, param2, tube_type, num_tubes, tbl)
-		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
+		minetest.swap_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
 	end,
 })
 
@@ -47,10 +48,12 @@ minetest.register_node("tubelib2:tubeS", {
 	},
 	
 	after_place_node = function(pos, placer, itemstack, pointed_thing)
+		local t = minetest.get_us_time()
 		if not Tube:after_place_tube(pos, placer, pointed_thing) then
 			minetest.remove_node(pos)
 			return true
 		end
+		print("place time", minetest.get_us_time() - t)
 		return false
 	end,
 	
@@ -102,7 +105,7 @@ minetest.register_node("tubelib2:tubeA", {
 	paramtype = "light",
 	sunlight_propagates = true,
 	is_ground_content = false,
-	groups = {crumbly = 3, cracky = 3, snappy = 3}, --not_in_creative_inventory=1},
+	groups = {crumbly = 3, cracky = 3, snappy = 3, not_in_creative_inventory=1},
 	sounds = default.node_sound_glass_defaults(),
 	drop = "tubelib2:tubeS",
 })

@@ -79,6 +79,7 @@ function Tube:after_place_node(pos, dirs)
 end
 
 -- To be called after a tube/primary node is placed.
+-- Returns false, if placing is not allowed
 function Tube:after_place_tube(pos, placer, pointed_thing)
 	-- [s1][f1]----[n1] x [n2]-----[f2][s2]
 	-- s..secondary, f..far, n..near, x..node to be placed
