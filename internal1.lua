@@ -22,6 +22,7 @@ local M = minetest.get_meta
 local Tube = tubelib2.Tube
 local Turn180Deg = tubelib2.Turn180Deg
 local Dir6dToVector = tubelib2.Dir6dToVector
+local tValidNum = {[0] = true, true, true}  -- 0..2 are valid
 
 --------------------------------------------------------------------------------------
 -- node get/test functions
@@ -182,7 +183,7 @@ function Tube:update_after_place_node(pos, dirs)
 	dirs = dirs or self.dirs_to_check
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir)
-		if npos then
+		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
 			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
@@ -196,7 +197,7 @@ function Tube:update_after_dig_node(pos, dirs)
 	dirs = dirs or self.dirs_to_check
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:del_tube_dir(pos, dir)
-		if npos then
+		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
 			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
@@ -210,19 +211,20 @@ function Tube:update_after_place_tube(pos, placer, pointed_thing)
 	if dir1 == nil then
 		return false
 	end
-	
-	self.clbk_after_place_tube(self:tube_data_to_table(pos, dir1, dir2, num_tubes))
+	if self.valid_dirs[dir1] and self.valid_dirs[dir2] and tValidNum[num_tubes]then
+		self.clbk_after_place_tube(self:tube_data_to_table(pos, dir1, dir2, num_tubes))
+	end
 	
 	if num_tubes >= 1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
-		if npos then
+		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
 			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
 	
 	if num_tubes >= 2 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
-		if npos then
+		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
 			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
@@ -234,13 +236,13 @@ function Tube:update_after_dig_tube(pos, param2)
 	
 	local lRes = {}
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
-	if npos then
+	if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
 		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		lRes[#lRes+1] = dir1
 	end
 	
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
-	if npos then
+	if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
 		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		lRes[#lRes+1] = dir2
 	end

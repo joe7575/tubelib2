@@ -52,7 +52,7 @@ function Tube:new(attr)
 		clbk_after_place_tube = attr.after_place_tube,
 		pairingList = {}, -- teleporting nodes
 	}
-	o.allowed_6d_dirs = Tbl(o.dirs_to_check)
+	o.valid_dirs = Tbl(o.dirs_to_check)
 	setmetatable(o, self)
 	self.__index = self
 	return o

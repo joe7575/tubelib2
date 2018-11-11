@@ -116,11 +116,11 @@ local Tube = tubelib2.Tube
 
 function Tube:fdir(player)
 	local pitch = player:get_look_pitch()
-	if pitch > 1.1 and self.allowed_6d_dirs[6] then -- up?
+	if pitch > 1.1 and self.valid_dirs[6] then -- up?
 		return 6
-	elseif pitch < -1.1 and self.allowed_6d_dirs[5] then -- down?
+	elseif pitch < -1.1 and self.valid_dirs[5] then -- down?
 		return 5
-	elseif not self.allowed_6d_dirs[1] then
+	elseif not self.valid_dirs[1] then
 		return 6
 	else
 		return minetest.dir_to_facedir(player:get_look_dir()) + 1
@@ -203,7 +203,7 @@ end
 -- and the players fdir and return dir1, dir2 and the number of tubes to connect to (0..2).
 function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	local tbl = {}
-	local allowed = table.copy(self.allowed_6d_dirs)
+	local allowed = table.copy(self.valid_dirs)
 	
 	-- Check for primary nodes (tubes)
 	for dir = 1,6 do
