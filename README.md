@@ -22,20 +22,20 @@ Tubelib2 specific 6D directions (1 = North, 2 = East, 3 = South, 4 = West, 5 = D
 
 All 6D dirs are the view from the node to the outer side
 Tubes are based on two node types, "angled" and "straight" tubes.
-  
-  
-         +-------+
-        /       /|               +-------+
-       +-------+ |              /       /|
-       |       | |             /       / |
-       |       | |            +-------+  |
-       |       | |            |       |  |
-       |       | |            |       |/ |
-       |       | +            +-------+| +
-       |       |/               |      |/
-       +-------+                +------+
-  
-  
+
+
+            +-------+
+           /       /|              +-------+
+          /       / |             /       /|
+         /       /  +            /       / |
+        /       /  /            +-------+  |
+       +-------+  /             |       |  |
+       |       | /              |       |/ |
+       |       |/               +-------+| +
+       +-------+                  |      |/
+                                  +------+
+
+
 All other nodes are build by means of axis/rotation variants based on param2
  (paramtype2 == "facedir").
 
@@ -53,7 +53,8 @@ default
 
 # License
 Copyright (C) 2017-2018 Joachim Stolberg  
-Code: Licensed under the GNU LGPL version 2.1 or later. See LICENSE.txt and http://www.gnu.org/licenses/lgpl-2.1.txt  
+Code: Licensed under the GNU LGPL version 2.1 or later.
+      See LICENSE.txt and http://www.gnu.org/licenses/lgpl-2.1.txt  
 Textures: CC0
 
 ## Dependencies

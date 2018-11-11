@@ -32,11 +32,6 @@ local Tube = tubelib2.Tube:new({
 			"tubelib2:source", "tubelib2:junction", "tubelib2:teleporter"},
 	after_place_tube = function(pos, param2, tube_type, num_tubes, tbl)
 		minetest.set_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
---		minetest.sound_play({
---			name="default_place_node_glass"},{
---			gain=1,
---			max_hear_distance=5,
---			loop=false})
 	end,
 })
 
@@ -187,7 +182,7 @@ minetest.register_node("tubelib2:junction", {
 		Tube:after_dig_node(pos)
 	end,
 	
-	tubelib2_on_update = function(pos, peer_pos, peer_dir)
+	tubelib2_on_update = function(pos, out_dir, peer_pos, peer_in_dir)
 		if Tube:secondary_node(peer_pos) then
 			local sdir = tubelib2.dir_to_string(peer_dir)
 			local node = minetest.get_node(peer_pos)
@@ -288,6 +283,11 @@ local function remove_tube(itemstack, placer, pointed_thing)
 		else
 			Tube:tool_remove_tube(pos, "default_break_glass")
 		end
+	else
+		minetest.chat_send_player(placer:get_player_name(), 
+			"[Tool Help]\n"..
+			"    left: remove node\n"..
+			"    right: repair tube line\n")
 	end
 end
 

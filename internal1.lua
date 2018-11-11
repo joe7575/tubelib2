@@ -153,7 +153,7 @@ function Tube:update_secondary_node(fpos,fdir, npos,ndir)
 	local fpos2, node = self:get_node(fpos, fdir)
 	if minetest.registered_nodes[node.name].tubelib2_on_update then
 		local npos2 = self:get_pos(npos, ndir)
-		minetest.registered_nodes[node.name].tubelib2_on_update(fpos2, npos2, ndir)
+		minetest.registered_nodes[node.name].tubelib2_on_update(fpos2, Turn180Deg[fdir], npos2, ndir)
 	end
 end
 
