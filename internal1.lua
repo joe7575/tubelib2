@@ -15,7 +15,7 @@
 ]]--
 
 -- for lazy programmers
-local S = minetest.pos_to_string
+local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local P = minetest.string_to_pos
 local M = minetest.get_meta
 
@@ -154,6 +154,9 @@ function Tube:update_secondary_node(fpos,fdir, npos,ndir)
 	local fpos2, node = self:get_node(fpos, fdir)
 	if minetest.registered_nodes[node.name].tubelib2_on_update then
 		local npos2 = self:get_pos(npos, ndir)
+		if vector.equals(npos2, fpos2) then  -- last tube removed?
+			npos2,ndir = nil,nil  -- used to delete the data base
+		end
 		minetest.registered_nodes[node.name].tubelib2_on_update(fpos2, Turn180Deg[fdir], npos2, ndir)
 	end
 end
@@ -249,3 +252,12 @@ function Tube:update_after_dig_tube(pos, param2)
 	return lRes
 end
 
+function Tube:update_secondary_nodes_after_dig_tube(pos)
+	local d1, d2 = self:determine_dir1_dir2_and_num_conn(pos)
+	if d1 then
+		self:update_secondary_node(pos,d1, pos,d1)
+	end
+	if d2 then
+		self:update_secondary_node(pos,d2, pos,d2)
+	end
+end

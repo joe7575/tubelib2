@@ -15,7 +15,7 @@
 ]]--
 
 -- for lazy programmers
-local S = minetest.pos_to_string
+local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local P = minetest.string_to_pos
 local M = minetest.get_meta
 
@@ -186,13 +186,14 @@ minetest.register_node("tubelib2:junction", {
 	end,
 	
 	tubelib2_on_update = function(pos, out_dir, peer_pos, peer_in_dir)
-		if Tube:secondary_node(peer_pos) then
-			local sdir = tubelib2.dir_to_string(peer_dir)
+		local sdir = tubelib2.dir_to_string(out_dir)
+		if not peer_pos then
+			print(S(pos).." to the "..sdir..": Not connected")
+		elseif Tube:secondary_node(peer_pos) then
 			local node = minetest.get_node(peer_pos)
-			print(S(pos).." connected with "..node.name)
+			print(S(pos).." to the "..sdir..": Connected with "..node.name)
 		else
-			local sdir = tubelib2.dir_to_string(peer_dir)
-			print(S(pos).." connected with "..S(peer_pos))
+			print(S(pos).." to the "..sdir..": Connected with "..S(peer_pos))
 		end
 	end,
 	

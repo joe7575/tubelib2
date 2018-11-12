@@ -16,8 +16,8 @@
 tubelib2.version = 0.4
 
 -- for lazy programmers
+local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local M = minetest.get_meta
-local S = minetest.pos_to_string
 
 local Dir2Str = {"north", "east", "south", "west", "down", "up"}
 
@@ -117,6 +117,7 @@ function Tube:after_dig_tube(pos, oldnode, oldmetadata)
 		self:add_meta(fpos, npos,ndir)
 		self:update_secondary_node(fpos,fdir, npos,ndir)
 	end
+	self:update_secondary_nodes_after_dig_tube(pos)
 end
 
 
