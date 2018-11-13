@@ -71,7 +71,7 @@ function Tube:after_place_node(pos, dirs)
 	-- [s][f]----[n] x
 	-- s..secondary, f..far, n..near, x..node to be placed
 	for _,dir in ipairs(self:update_after_place_node(pos, dirs)) do
-		local fpos,fdir = self:get_meta(pos, dir)
+		local fpos,fdir = self:repair_meta(pos, dir)
 		local npos, ndir = self:get_pos(pos, dir)
 		self:update_secondary_node(fpos,fdir, npos,ndir)
 		self:update_secondary_node(npos,ndir, fpos,fdir)
@@ -83,8 +83,8 @@ end
 function Tube:after_place_tube(pos, placer, pointed_thing)
 	-- [s1][f1]----[n1] x [n2]-----[f2][s2]
 	-- s..secondary, f..far, n..near, x..node to be placed
-	local res,dir1,dir2 = self:update_after_place_tube(pos, placer, pointed_thing)
-	if res then
+	local res,dir1,dir2,cnt = self:update_after_place_tube(pos, placer, pointed_thing)
+	if res and cnt > 0 then  -- other nodes around?
 		local fpos1,fdir1 = self:del_meta(pos, dir1)
 		local fpos2,fdir2 = self:del_meta(pos, dir2)
 		self:add_meta(fpos1, fpos2,fdir2)
@@ -126,8 +126,13 @@ end
 -- The returned pos is the destination position, dir
 -- is the direction into the destination node.
 function Tube:get_connected_node_pos(pos, dir)
-	local fpos,fdir = self:get_meta(pos, dir)
+	local fpos,fdir = self:repair_meta(pos, dir)
 	local npos,ndir = self:get_pos(fpos,fdir)
+	-- only one tube with wrong dir info?
+	if vector.equals(pos, npos) then
+		fpos,fdir = self:del_meta(pos, dir)
+		return self:get_pos(fpos,fdir)
+	end
 	return npos, dir
 end
 

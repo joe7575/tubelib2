@@ -96,6 +96,21 @@ function Tube:get_meta(pos, dir)
 	return self:repair_tube_line(pos, dir)
 end
 
+-- Like get_meta(), but repair data if necessary
+function Tube:repair_meta(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local meta = M(npos)
+	local peer_pos = meta:get_string("peer_pos")
+	local peer_dir = meta:get_int("peer_dir")
+	if peer_pos ~= "" then
+		return P(peer_pos), peer_dir
+	end
+	peer_pos, peer_dir = self:repair_tube_line(pos, dir)
+	self:add_meta(npos, peer_pos, peer_dir)
+	return peer_pos, peer_dir
+end
+
+
 function Tube:get_oldmeta(pos, dir, oldmetadata)
 	if oldmetadata.fields and oldmetadata.fields.peer_pos then
 		return P(oldmetadata.fields.peer_pos), tonumber(oldmetadata.fields.peer_dir)
@@ -135,10 +150,10 @@ function Tube:repair_tube_line(pos, dir)
 		return self:get_next_teleport_node(pos, dir)
 	end
 	
+	print("repair_tube_line")
 	local cnt = 0
 	if not dir then	return pos, dir, cnt end	
 	while cnt <= self.max_tube_length do
-		--if cnt > 1 then M(pos):from_table(nil) end
 		local new_pos, new_dir = repair_next_tube(self, pos, dir)
 		if not new_dir then	break end
 		pos, dir = new_pos, new_dir
@@ -231,7 +246,7 @@ function Tube:update_after_place_tube(pos, placer, pointed_thing)
 			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
 		end
 	end
-	return true, dir1, dir2
+	return true, dir1, dir2, num_tubes
 end	
 	
 function Tube:update_after_dig_tube(pos, param2)
