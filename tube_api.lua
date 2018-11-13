@@ -164,11 +164,15 @@ end
 
 function Tube:prepare_pairing(pos, tube_dir, sFormspec)
 	local meta = M(pos)
-	meta:set_int("tube_dir", tube_dir)
-
-	meta:set_string("channel", nil)
-	meta:set_string("infotext", "Unconnected")
-	meta:set_string("formspec", sFormspec)
+	if meta:get_int("tube_dir") ~= 0 then -- already prepared?
+		-- update tube_dir only
+		meta:set_int("tube_dir", tube_dir)
+	else
+		meta:set_int("tube_dir", tube_dir)
+		meta:set_string("channel", nil)
+		meta:set_string("infotext", "Unconnected")
+		meta:set_string("formspec", sFormspec)
+	end
 end
 
 function Tube:pairing(pos, channel)
