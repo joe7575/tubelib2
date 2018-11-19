@@ -47,7 +47,6 @@ function Tube:new(attr)
 		max_tube_length = attr.max_tube_length or 1000, 
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
 		secondary_node_names = Tbl(attr.secondary_node_names or {}),
-		legacy_node_names = Tbl(attr.legacy_node_names or {}),
 		show_infotext = attr.show_infotext or false,
 		clbk_after_place_tube = attr.after_place_tube,
 		pairingList = {}, -- teleporting nodes
@@ -182,9 +181,6 @@ function Tube:pairing(pos, channel)
 
 		local tube_dir1 = self:store_teleport_data(pos, peer_pos)
 		local tube_dir2 = self:store_teleport_data(peer_pos, pos)
-
-		--self:delete_tube_meta_data(pos, tube_dir1)
-		--self:delete_tube_meta_data(peer_pos, tube_dir2)
 		local fpos1,fdir1 = self:repair_tube_line(pos, tube_dir1)
 		local fpos2,fdir2 = self:repair_tube_line(peer_pos, tube_dir2)
 		self:add_meta(fpos1, fpos2,fdir2)

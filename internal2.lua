@@ -152,7 +152,6 @@ function Tube:connected(pos, dir)
 	local node = get_node_lvm(npos)
 	return self.primary_node_names[node.name] 
 		or self.secondary_node_names[node.name]
-		or self.legacy_node_names[node.name]
 end
 
 -- Determine dirs via surrounding nodes

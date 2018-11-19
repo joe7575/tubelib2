@@ -167,7 +167,8 @@ end
 function Tube:update_secondary_node(fpos,fdir, npos,ndir)
 	-- [s]<-[n]----[f]->[s]
 	local fpos2, node = self:get_node(fpos, fdir)
-	if minetest.registered_nodes[node.name].tubelib2_on_update then
+	if minetest.registered_nodes[node.name] and 
+			minetest.registered_nodes[node.name].tubelib2_on_update then
 		local npos2 = self:get_pos(npos, ndir)
 		if vector.equals(npos2, fpos2) then  -- last tube removed?
 			npos2,ndir = nil,nil  -- used to delete the data base
