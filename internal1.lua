@@ -150,7 +150,6 @@ function Tube:repair_tube_line(pos, dir)
 		return self:get_next_teleport_node(pos, dir)
 	end
 	
-	print("repair_tube_line")
 	local cnt = 0
 	if not dir then	return pos, dir, cnt end	
 	while cnt <= self.max_tube_length do
