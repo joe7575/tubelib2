@@ -157,7 +157,9 @@ function Tube:tool_remove_tube(pos, sound)
 	local oldnode, oldmeta = self:remove_tube(pos, sound)
 	if oldnode then
 		self:after_dig_tube(pos, oldnode, oldmeta)
+		return true
 	end
+	return false
 end
 
 
@@ -201,16 +203,19 @@ end
 
 function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 	-- unpair peer node
-	if oldmetadata and oldmetadata.fields and oldmetadata.fields.tele_pos then
-		local tele_pos = minetest.string_to_pos(oldmetadata.fields.tele_pos)
-		local peer_meta = M(tele_pos)
-		if peer_meta then
-			self:after_place_node(tele_pos, {peer_meta:get_int("tube_dir")})
-
-			peer_meta:set_string("channel", nil)
-			peer_meta:set_string("tele_pos", nil)
-			peer_meta:set_string("formspec", sFormspec)
-			peer_meta:set_string("infotext", "Unconnected")
+	if oldmetadata and oldmetadata.fields then
+		if oldmetadata.fields.tele_pos then
+			local tele_pos = minetest.string_to_pos(oldmetadata.fields.tele_pos)
+			local peer_meta = M(tele_pos)
+			if peer_meta then
+				self:after_place_node(tele_pos, {peer_meta:get_int("tube_dir")})
+				peer_meta:set_string("channel", nil)
+				peer_meta:set_string("tele_pos", nil)
+				peer_meta:set_string("formspec", sFormspec)
+				peer_meta:set_string("infotext", "Unconnected")
+			end
+		elseif oldmetadata.fields.channel then
+			self.pairingList[oldmetadata.fields.channel] = nil
 		end
 	end
 end
