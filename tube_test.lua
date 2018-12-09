@@ -246,12 +246,18 @@ minetest.register_node("tubelib2:teleporter", {
 	sounds = default.node_sound_glass_defaults(),
 })
 
+--local function read_param2(pos, player)
+--	local node = minetest.get_node(pos)	
+--	local num = math.floor(node.param2/32)
+--	local axis = math.floor(node.param2/4) % 8
+--	local rot = node.param2 % 4	
+--	minetest.chat_send_player(player:get_player_name(), "[Tubelib2] param2 = "..node.param2.."/"..num.."/"..axis.."/"..rot)
+--end
+
 local function read_param2(pos, player)
 	local node = minetest.get_node(pos)	
-	local num = math.floor(node.param2/32)
-	local axis = math.floor(node.param2/4) % 8
-	local rot = node.param2 % 4	
-	minetest.chat_send_player(player:get_player_name(), "[Tubelib2] param2 = "..node.param2.."/"..num.."/"..axis.."/"..rot)
+	local dir1, dir2, num_tubes = Tube:decode_param2(pos, node.param2)
+	minetest.chat_send_player(player:get_player_name(), "[Tubelib2] pos="..S(pos)..", dir1="..dir1..", dir2="..dir2..", num_tubes="..num_tubes)
 end
 
 local function chat_message(dir, cnt, peer_pos, peer_dir)

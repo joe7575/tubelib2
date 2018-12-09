@@ -116,9 +116,9 @@ local Tube = tubelib2.Tube
 
 function Tube:fdir(player)
 	local pitch = player:get_look_pitch()
-	if pitch > 1.1 and self.valid_dirs[6] then -- up?
+	if pitch > 1.0 and self.valid_dirs[6] then -- up?
 		return 6
-	elseif pitch < -1.1 and self.valid_dirs[5] then -- down?
+	elseif pitch < -1.0 and self.valid_dirs[5] then -- down?
 		return 5
 	elseif not self.valid_dirs[1] then
 		return 6
@@ -283,24 +283,8 @@ end
 function Tube:determine_next_node(pos, dir)
 	local npos, node = self:get_node(pos, dir)
 	if self.primary_node_names[node.name] then
-		-- determine dirs on two ways
-		local da1,da2,numa = self:decode_param2(npos, node.param2)
-		local db1,db2,numb = self:determine_dir1_dir2_and_num_conn(npos)
-		-- both identical?
-		if da1 == db1 and da2 == db2 then
-			return npos, da1, da2
-		end
-		-- test if stored dirs point to valid nodes
-		if self:connected(npos, da1) and self:connected(npos, da2) then
-			return npos, da1, da2
-		end
-		-- use and store the determined dirs
-		if db1 and db2 then
-			node.param2 = self:encode_param2(db1,db2,numb)
-			minetest.set_node(npos, node)
-			return npos, db1, db2
-		end
-		return npos, da1, da2
+		local d1,d2,num = self:decode_param2(npos, node.param2)
+		return npos, d1, d2, num
 	end
 end
 

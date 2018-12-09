@@ -34,7 +34,7 @@ local tValidNum = {[0] = true, true, true}  -- 0..2 are valid
 function Tube:primary_node(pos, dir)
 	local npos, node = self:get_node(pos, dir)
 	if self.primary_node_names[node.name] then
-		return npos
+		return npos, node
 	end
 end
 
@@ -137,24 +137,35 @@ end
 -- Do a correction of param2, delete meta data of all 2-conn-tubes,
 -- and return peer_pos, peer_dir, and number of tube nodes.
 function Tube:repair_tube_line(pos, dir)
-	local repair_next_tube = function(self, pos, dir)
-		local npos, dir1, dir2 = self:determine_next_node(pos, dir)
+	local get_next_tube = function(self, pos, dir)
+		local npos, dir1, dir2, num = self:determine_next_node(pos, dir)
 		if dir1 then
 			M(npos):from_table(nil)
 			if Turn180Deg[dir] == dir1 then
-				return npos, dir2
+				return npos, dir2, num
 			else
-				return npos, dir1
+				return npos, dir1, num
 			end
 		end
 		return self:get_next_teleport_node(pos, dir)
+	end
+	-- do a correction of "number of neighbours" for all nodes in between
+	local repair_tube = function(self, pos, dir)
+		local _, node = self:primary_node(pos, dir)
+		if node then
+			node.param2 = (2 * 32) + (node.param2 % 32)
+			minetest.swap_node(pos, node)
+		end
 	end
 	
 	local cnt = 0
 	if not dir then	return pos, dir, cnt end	
 	while cnt <= self.max_tube_length do
-		local new_pos, new_dir = repair_next_tube(self, pos, dir)
+		local new_pos, new_dir, num = get_next_tube(self, pos, dir)
 		if not new_dir then	break end
+		if cnt > 0 and num ~= 2 then
+			repair_tube(self, pos, dir)
+		end
 		pos, dir = new_pos, new_dir
 		cnt = cnt + 1
 	end
