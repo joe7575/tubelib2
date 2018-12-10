@@ -27,7 +27,7 @@ local Tube = tubelib2.Tube:new({
 	-- dirs_to_check = {5,6},  -- vertical only
 	dirs_to_check = {1,2,3,4,5,6},
 	max_tube_length = 1000, 
-	show_infotext = false,
+	show_infotext = true,
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
 			"tubelib2:source", "tubelib2:junction", "tubelib2:teleporter"},
@@ -35,6 +35,19 @@ local Tube = tubelib2.Tube:new({
 		minetest.swap_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
 	end,
 })
+
+Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)
+	local sdir = tubelib2.dir_to_string(out_dir)
+	if not peer_pos then
+		print(S(pos).." to the "..sdir..": Not connected")
+	elseif Tube:secondary_node(peer_pos) then
+		local node = minetest.get_node(peer_pos)
+		print(S(pos).." to the "..sdir..": Connected with "..node.name)
+	else
+		print(S(pos).." to the "..sdir..": Connected with "..S(peer_pos))
+	end
+end)
+
 
 minetest.register_node("tubelib2:tubeS", {
 	description = "Tubelib2 Test tube",
@@ -48,12 +61,12 @@ minetest.register_node("tubelib2:tubeS", {
 	},
 	
 	after_place_node = function(pos, placer, itemstack, pointed_thing)
-		local t = minetest.get_us_time()
+		--local t = minetest.get_us_time()
 		if not Tube:after_place_tube(pos, placer, pointed_thing) then
 			minetest.remove_node(pos)
 			return true
 		end
-		print("place time", minetest.get_us_time() - t)
+		--print("place time", minetest.get_us_time() - t)
 		return false
 	end,
 	
@@ -185,18 +198,6 @@ minetest.register_node("tubelib2:junction", {
 		Tube:after_dig_node(pos)
 	end,
 	
-	tubelib2_on_update = function(pos, out_dir, peer_pos, peer_in_dir)
-		local sdir = tubelib2.dir_to_string(out_dir)
-		if not peer_pos then
-			print(S(pos).." to the "..sdir..": Not connected")
-		elseif Tube:secondary_node(peer_pos) then
-			local node = minetest.get_node(peer_pos)
-			print(S(pos).." to the "..sdir..": Connected with "..node.name)
-		else
-			print(S(pos).." to the "..sdir..": Connected with "..S(peer_pos))
-		end
-	end,
-	
 	paramtype2 = "facedir", -- important!
 	on_rotate = screwdriver.disallow, -- important!
 	paramtype = "light",
@@ -294,8 +295,9 @@ local function remove_tube(itemstack, placer, pointed_thing)
 			Tube:tool_remove_tube(pos, "default_break_glass")
 		end
 	else
+		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
 		minetest.chat_send_player(placer:get_player_name(), 
-			"[Tool Help]\n"..
+			"[Tool Help] dir="..dir.."\n"..
 			"    left: remove node\n"..
 			"    right: repair tube line\n")
 	end

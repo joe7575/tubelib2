@@ -173,17 +173,17 @@ function Tube:repair_tube_line(pos, dir)
 end	
 
 -- fpos,fdir points to the secondary node to be updated.
--- npos,ndir are used to calculate the connection data to be written.
+-- npos,ndir are used to calculate the connection data to be stored.
 function Tube:update_secondary_node(fpos,fdir, npos,ndir)
 	-- [s]<-[n]----[f]->[s]
+	print("update_secondary_node", S(fpos), fdir)
 	local fpos2, node = self:get_node(fpos, fdir)
-	if self.secondary_node_names[node.name] and 
-			minetest.registered_nodes[node.name].tubelib2_on_update then
+	if self.secondary_node_names[node.name] and self.clbk_update_secondary_node then
 		local npos2 = self:get_pos(npos, ndir)
 		if vector.equals(npos2, fpos2) then  -- last tube removed?
 			npos2,ndir = nil,nil  -- used to delete the data base
 		end
-		minetest.registered_nodes[node.name].tubelib2_on_update(fpos2, Turn180Deg[fdir], npos2, ndir)
+		self.clbk_update_secondary_node(node, fpos2, Turn180Deg[fdir], npos2, ndir)
 	end
 end
 

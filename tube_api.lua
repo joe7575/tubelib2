@@ -36,6 +36,8 @@ end
 -- Tubelib2 Class
 tubelib2.Tube = {}
 local Tube = tubelib2.Tube
+local Turn180Deg = tubelib2.Turn180Deg
+
 
 --
 -- API Functions
@@ -62,6 +64,12 @@ function Tube:add_secondary_node_names(names)
 	for _,name in ipairs(names) do
 		self.secondary_node_names[name] = true
 	end
+end
+
+-- Called for each connected node when the tube connection has been changed.
+-- func(node, pos, out_dir, peer_pos, peer_in_dir)
+function Tube:register_on_tube_update(update_secondary_node)
+		self.clbk_update_secondary_node = update_secondary_node
 end
 
 -- To be called after a secondary node is placed.
@@ -106,6 +114,7 @@ function Tube:after_dig_node(pos, dirs)
 	end
 end
 
+-- To be called after a tube/primary node is removed.
 function Tube:after_dig_tube(pos, oldnode, oldmetadata)
 	-- [s1][f1]----[n1] x [n2]-----[f2][s2]
 	-- s..secondary, f..far, n..near, x..node to be removed
@@ -130,9 +139,9 @@ function Tube:get_connected_node_pos(pos, dir)
 	-- only one tube with wrong dir info?
 	if vector.equals(pos, npos) then
 		fpos,fdir = self:del_meta(pos, dir)
-		return self:get_pos(fpos,fdir)
+		npos,ndir = self:get_pos(fpos,fdir)
 	end
-	return npos, dir
+	return npos, fdir
 end
 
 
