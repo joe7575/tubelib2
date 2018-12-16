@@ -70,6 +70,22 @@ local function update2(self, pos1, dir1, pos2, dir2)
 	self:update_secondary_node(spos2, sdir2, spos1, sdir1)
 end
 
+local function update3(self, pos, dir1, dir2)
+	local fpos1,fdir1,cnt1 = self:walk_tube_line(pos, dir1)
+	local fpos2,fdir2,cnt2 = self:walk_tube_line(pos, dir2)
+	-- Translate fpos/fdir pointing to the secondary node into 
+	-- spos/sdir of the secondary node pointing to the tube.
+	local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
+	local spos2, sdir2 = get_pos(fpos2,fdir2), Turn180Deg[fdir2]
+	self:del_from_cache(spos1, sdir1)
+	self:del_from_cache(spos2, sdir2)
+	self:add_to_cache(spos1, sdir1, spos2, sdir2)
+	self:add_to_cache(spos2, sdir2, spos1, sdir1)
+	self:update_secondary_node(spos1, sdir1, spos2, sdir2)
+	self:update_secondary_node(spos2, sdir2, spos1, sdir1)
+	return dir1, dir2, fpos1, fpos2, fdir1, fdir2, cnt1 or 0, cnt2 or 0
+end
+
 --
 -- API Functions
 --
@@ -173,6 +189,16 @@ function Tube:get_connected_node_pos(pos, dir)
 	self:add_to_cache(pos, dir, spos, Turn180Deg[fdir])
 	self:add_to_cache(spos, Turn180Deg[fdir], pos, dir)
 	return spos, fdir
+end
+
+-- To be called from a repair tool in the case of a "WorldEdit" or with
+-- legacy nodes corrupted tube line.
+function Tube:tool_repair_tube(pos)
+	local _, node = self:primary_node(pos)
+	if node then
+		local dir1, dir2 = self:decode_param2(pos, node.param2)
+		return update3(self, pos, dir1, dir2)
+	end
 end
 
 -- To be called from a repair tool in the case, tube nodes are "unbreakable".
