@@ -44,10 +44,10 @@ All other nodes are build by means of axis/rotation variants based on param2
 
 The 3 free MSB bits of param2 of tube nodes are used to store the number of connections (0..2).
 
-The data of the peer head tube are stored as meta data: "peer_pos" and "peer_dir"
+The data of the peer head tube are stored in memory 'self.connCache'
 
 Tubelib2 provides an update mechanism for connected "secondary" nodes. A callback function
-"tubelib2_on_update" will be called for every change on the connected tubes.
+func(node, pos, out_dir, peer_pos, peer_in_dir) will be called for every change on the connected tubes.
 
 
 
@@ -65,3 +65,4 @@ Textures: CC0
 - 2018-10-27  v0.2  * Tested against and enhanced for the hyperloop mod.
 - 2018-10-27  v0.3  * Further improvements.
 - 2018-11-09  v0.4  * on_update function for secondary nodes introduced
+- 2018-12-16  v0.5  * meta data removed, memory cache added instead of

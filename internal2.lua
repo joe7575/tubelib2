@@ -20,6 +20,7 @@ local M = minetest.get_meta
 
 local Turn180Deg = {[0]=0,3,4,1,2,6,5}
 tubelib2.Turn180Deg = Turn180Deg
+tubelib2.Tube = {}
 
 -- To calculate param2 based on dir6d information
 local DirToParam2 = {
@@ -74,21 +75,6 @@ local VectorToDir6d = {
 -- Local Functions
 --
 
-local function Tbl(list)
-	local tbl = {}
-	for _,item in ipairs(list) do
-		tbl[item] = true
-	end
-	return tbl
-end
-
--- Return val in the range of min and max
-local function range(val, min, max)
-	if val > max then return max end
-	if val < min then return min end
-	return val
-end
-
 local function get_node_lvm(pos)
 	local node = minetest.get_node_or_nil(pos)
 	if node then
@@ -107,6 +93,42 @@ local function get_node_lvm(pos)
 	return node
 end
 
+local function get_next_tube(self, pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = get_node_lvm(npos)
+	if self.primary_node_names[node.name] then
+		-- decode param2
+		local val = Param2ToDir[node.param2 % 32]
+		if val then
+			local dir1, dir2 = math.floor(val / 10), val % 10
+			local num_conn = math.floor(node.param2 / 32)
+			if Turn180Deg[dir] == dir1 then
+				return npos, dir2, num_conn
+			else
+				return npos, dir1, num_conn
+			end
+		end
+	end
+	return self:get_next_teleport_node(pos, dir)
+end
+
+local function repair_tube(self, pos, dir)
+	local node = get_node_lvm(pos, dir)
+	if self.primary_node_names[node.name] then
+		node.param2 = (2 * 32) + (node.param2 % 32)
+		minetest.set_node(pos, node)
+	end
+end
+
+-- Return param2 and tube type ("A"/"S")
+function tubelib2.encode_param2(dir1, dir2, num_conn)
+	if dir1 > dir2 then
+		dir1, dir2 = dir2, dir1
+	end
+	local param2, _type = unpack(DirToParam2[dir1 * 10 + dir2] or {0, "S"})
+	return (num_conn * 32) + param2, _type
+end
+
 
 --
 -- Tubelib2 Methods
@@ -114,36 +136,24 @@ end
 
 local Tube = tubelib2.Tube
 
-function Tube:fdir(player)
-	local pitch = player:get_look_pitch()
-	if pitch > 1.0 and self.valid_dirs[6] then -- up?
-		return 6
-	elseif pitch < -1.0 and self.valid_dirs[5] then -- down?
-		return 5
-	elseif not self.valid_dirs[1] then
-		return 6
-	else
-		return minetest.dir_to_facedir(player:get_look_dir()) + 1
+-- Check if node at given position is a tube node
+-- If dir == nil then node_pos = pos 
+-- Function returns the new pos or nil
+function Tube:primary_node(pos, dir)
+	local npos, node = self:get_node(pos, dir)
+	if self.primary_node_names[node.name] then
+		return npos, node
 	end
 end
 
-function Tube:get_player_data(placer, pointed_thing)
-	if placer and pointed_thing and pointed_thing.type == "node" then
-		if placer:get_player_control().sneak then
-			return pointed_thing.under, self:fdir(placer)
-		else
-			return nil, self:fdir(placer)
-		end
+-- Check if node at given position is a secondary node
+-- If dir == nil then node_pos = pos 
+-- Function returns the new pos or nil
+function Tube:secondary_node(pos, dir)
+	local npos, node = self:get_node(pos, dir)
+	if self.secondary_node_names[node.name] then
+		return npos
 	end
-end
-
--- Return param2 and tube type ("A"/"S")
-function Tube:encode_param2(dir1, dir2, num_conn)
-	if dir1 > dir2 then
-		dir1, dir2 = dir2, dir1
-	end
-	local param2, _type = unpack(DirToParam2[dir1 * 10 + dir2] or {0, "S"})
-	return (num_conn * 32) + param2, _type
 end
 
 -- Check if node has a connection on the given dir
@@ -154,21 +164,6 @@ function Tube:connected(pos, dir)
 		or self.secondary_node_names[node.name]
 end
 
--- Determine dirs via surrounding nodes
-function Tube:determine_dir1_dir2_and_num_conn(pos)
-	local dirs = {}
-	for dir = 1, 6 do
-		if self:connected(pos, dir) then
-			dirs[#dirs+1] = dir
-		end
-	end
-	if #dirs == 1 then
-		return dirs[1], nil, 1
-	elseif #dirs == 2 then
-		return dirs[1], dirs[2], 2
-	end
-end
-
 -- Return dir1, dir2, num_conn
 function Tube:decode_param2(pos, param2)
 	local val = Param2ToDir[param2 % 32]
@@ -177,14 +172,6 @@ function Tube:decode_param2(pos, param2)
 		local num_conn = math.floor(param2 / 32)
 		return dir1, dir2, num_conn
 	end
-	-- determine dirs via surrounding nodes
-	return self:determine_dir1_dir2_and_num_conn(pos)
-
-end
-
--- No connection to both sides
-function Tube:first_placed_node(pos, param2)
-	return math.floor(param2 / 32) == 0
 end
 
 -- Return node next to pos in direction 'dir'
@@ -280,20 +267,6 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	end
 end
 
-function Tube:determine_next_node(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		local d1,d2,num = self:decode_param2(npos, node.param2)
-		return npos, d1, d2, num
-	end
-end
-
--- format and return given data as table
-function Tube:tube_data_to_table(pos, dir1, dir2, num_tubes)
-	local param2, tube_type = self:encode_param2(dir1, dir2, num_tubes)
-	return pos, param2, tube_type, num_tubes
-end	
-
 -- Determine a tube side without connection, increment the number of connections
 -- and return the new data to be able to update the node: 
 -- new_pos, dir1, dir2, num_connections (1, 2)
@@ -354,15 +327,31 @@ function Tube:get_next_teleport_node(pos, dir)
 	end
 end
 
-function Tube:remove_tube(pos, sound)
-	local node = get_node_lvm(pos)
-	if self.primary_node_names[node.name] then
-		minetest.sound_play({
-				name=sound},{
-				gain=1,
-				max_hear_distance=5,
-				loop=false})
-		minetest.remove_node(pos)
-		return node, {}
+function Tube:dbg_out()
+	for pos1,item1 in pairs(self.connCache) do
+		for dir1,item2 in pairs(item1) do
+			print("pos1="..pos1..", dir1="..dir1..", pos2="..S(item2.pos2)..", dir2="..item2.dir2)
+		end
 	end
 end
+	
+-- Walk to the end of the tube line and return pos and outdir of both head tube nodes.
+-- If no tube is available, return nil
+function Tube:walk_tube_line(pos, dir)
+	local cnt = 0
+	if dir then
+		while cnt <= self.max_tube_length do
+			local new_pos, new_dir, num = get_next_tube(self, pos, dir)
+			if not new_dir then	break end
+			if cnt > 0 and num ~= 2 then
+				repair_tube(self, new_pos, new_dir)
+			end
+			pos, dir = new_pos, new_dir
+			cnt = cnt + 1
+		end
+		if cnt > 0 then
+			return pos, dir, cnt
+		end
+	end
+	return table.copy(pos), dir, 0
+end	

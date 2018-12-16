@@ -42,9 +42,9 @@ Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)
 		print(S(pos).." to the "..sdir..": Not connected")
 	elseif Tube:secondary_node(peer_pos) then
 		local node = minetest.get_node(peer_pos)
-		print(S(pos).." to the "..sdir..": Connected with "..node.name)
+		print(S(pos).." to the "..sdir..": Connected with "..node.name.." at "..S(peer_pos).."/"..peer_in_dir)
 	else
-		print(S(pos).." to the "..sdir..": Connected with "..S(peer_pos))
+		print(S(pos).." to the "..sdir..": Connected with "..S(peer_pos).."/"..peer_in_dir)
 	end
 end)
 
@@ -247,43 +247,10 @@ minetest.register_node("tubelib2:teleporter", {
 	sounds = default.node_sound_glass_defaults(),
 })
 
---local function read_param2(pos, player)
---	local node = minetest.get_node(pos)	
---	local num = math.floor(node.param2/32)
---	local axis = math.floor(node.param2/4) % 8
---	local rot = node.param2 % 4	
---	minetest.chat_send_player(player:get_player_name(), "[Tubelib2] param2 = "..node.param2.."/"..num.."/"..axis.."/"..rot)
---end
-
 local function read_param2(pos, player)
 	local node = minetest.get_node(pos)	
 	local dir1, dir2, num_tubes = Tube:decode_param2(pos, node.param2)
 	minetest.chat_send_player(player:get_player_name(), "[Tubelib2] pos="..S(pos)..", dir1="..dir1..", dir2="..dir2..", num_tubes="..num_tubes)
-end
-
-local function chat_message(dir, cnt, peer_pos, peer_dir)
-	local sdir = tubelib2.dir_to_string(dir)
-	if Tube:secondary_node(peer_pos, peer_dir) then
-		local npos, node = Tube:get_node(peer_pos, peer_dir)
-		return "[Tubelib2] To the "..sdir..": "..cnt.." tube nodes to "..node.name.." at "..S(npos)
-	else
-		return "[Tubelib2] To the "..sdir..": "..cnt.." tube nodes to "..S(peer_pos)
-	end
-end
-
-local function repair_tubes(itemstack, placer, pointed_thing)
-	if pointed_thing.type == "node" then
-		local pos = pointed_thing.under
-		local t = minetest.get_us_time()
-		local dir1, dir2, fpos1, fpos2, fdir1, fdir2, cnt1, cnt2 = 
-				Tube:tool_repair_tube(pos, placer, pointed_thing)
-		t = minetest.get_us_time() - t
-		print("time", t)
-		if fpos1 and fpos2 then
-			minetest.chat_send_player(placer:get_player_name(), chat_message(dir1, cnt1, fpos1, fdir1))
-			minetest.chat_send_player(placer:get_player_name(), chat_message(dir2, cnt2, fpos2, fdir2))
-		end
-	end
 end
 
 local function remove_tube(itemstack, placer, pointed_thing)
@@ -303,6 +270,31 @@ local function remove_tube(itemstack, placer, pointed_thing)
 	end
 end
 
+local function walk(itemstack, placer, pointed_thing)
+	if pointed_thing.type == "node" then
+		local pos = pointed_thing.under
+		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
+		local t = minetest.get_us_time()
+		local pos1, outdir1, pos2, outdir2, cnt = Tube:walk(pos, dir)
+		t = minetest.get_us_time() - t
+		print("time", t)
+		if pos1 then
+			local s = "[Tubelib2] pos1="..S(pos1)..", outdir1="..outdir1..", pos2="..S(pos2)..", outdir2="..outdir2..", cnt="..cnt
+			minetest.chat_send_player(placer:get_player_name(), s)
+		end
+	else
+		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
+		minetest.chat_send_player(placer:get_player_name(), 
+			"[Tool Help] dir="..dir.."\n"..
+			"    left: remove node\n"..
+			"    right: repair tube line\n")
+	end
+end
+
+local function debug(itemstack, placer, pointed_thing)
+	Tube:dbg_out()
+end
+
 -- Tool for tube workers to crack a protected tube line
 minetest.register_node("tubelib2:tool", {
 	description = "Tubelib2 Tool",
@@ -311,7 +303,7 @@ minetest.register_node("tubelib2:tool", {
 	use_texture_alpha = true,
 	groups = {cracky=1, book=1},
 	on_use = remove_tube,
-	on_place = repair_tubes,
+	on_place = debug,
 	node_placement_prediction = "",
 	stack_max = 1,
 })

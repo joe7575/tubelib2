@@ -22,31 +22,38 @@ local M = minetest.get_meta
 local Tube = tubelib2.Tube
 local Turn180Deg = tubelib2.Turn180Deg
 local Dir6dToVector = tubelib2.Dir6dToVector
+local encode_param2 = tubelib2.encode_param2
 local tValidNum = {[0] = true, true, true}  -- 0..2 are valid
 
---------------------------------------------------------------------------------------
--- node get/test functions
---------------------------------------------------------------------------------------
+-- format and return given data as table
+local function get_tube_data(pos, dir1, dir2, num_tubes)
+	local param2, tube_type = encode_param2(dir1, dir2, num_tubes)
+	return pos, param2, tube_type, num_tubes
+end	
 
--- Check if node at given position is a tube node
--- If dir == nil then node_pos = pos 
--- Function returns the new pos or nil
-function Tube:primary_node(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		return npos, node
+local function fdir(self, player)
+	local pitch = player:get_look_pitch()
+	if pitch > 1.0 and self.valid_dirs[6] then -- up?
+		return 6
+	elseif pitch < -1.0 and self.valid_dirs[5] then -- down?
+		return 5
+	elseif not self.valid_dirs[1] then
+		return 6
+	else
+		return minetest.dir_to_facedir(player:get_look_dir()) + 1
 	end
 end
 
--- Check if node at given position is a secondary node
--- If dir == nil then node_pos = pos 
--- Function returns the new pos or nil
-function Tube:secondary_node(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.secondary_node_names[node.name] then
-		return npos
+local function get_player_data(self, placer, pointed_thing)
+	if placer and pointed_thing and pointed_thing.type == "node" then
+		if placer:get_player_control().sneak then
+			return pointed_thing.under, fdir(placer)
+		else
+			return nil, fdir(self, placer)
+		end
 	end
 end
+
 
 -- Used to determine the node side to the tube connection.
 -- Function returns the first found dir value
@@ -61,132 +68,36 @@ function Tube:get_primary_dir(pos)
 	end
 end
 
--- Return the new pos behind pos/dir and the dir our of the node.
-function Tube:get_pos(pos, dir)
-	return vector.add(pos, Dir6dToVector[dir or 0]), Turn180Deg[dir]
-end
-
-
---------------------------------------------------------------------------------------
--- get/del/add meta data functions
---------------------------------------------------------------------------------------
-
-function Tube:del_meta(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		local meta = M(npos)
-		local peer_pos = meta:get_string("peer_pos")
-		local peer_dir = meta:get_int("peer_dir")
-		meta:from_table(nil)
-		if peer_pos ~= "" then
-			return P(peer_pos), peer_dir
+-- pos/dir are the pos of the stable secondary node pointing to the head tube node.
+function Tube:del_from_cache(pos, dir)
+	local key = S(pos)
+	if self.connCache[key] and self.connCache[key][dir] then
+		local pos2 = self.connCache[key][dir].pos2
+		local dir2 = self.connCache[key][dir].dir2
+		local key2 = S(pos2)
+		if self.connCache[key2] and self.connCache[key2][dir2] then
+			self.connCache[key2][dir2] = nil
 		end
-	end
-	return self:repair_tube_line(pos, dir)
-end
-
-function Tube:get_meta(pos, dir)
-	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local meta = M(npos)
-	local peer_pos = meta:get_string("peer_pos")
-	local peer_dir = meta:get_int("peer_dir")
-	if peer_pos ~= "" then
-		return P(peer_pos), peer_dir
-	end
-	return self:repair_tube_line(pos, dir)
-end
-
--- Like get_meta(), but repair data if necessary
-function Tube:repair_meta(pos, dir)
-	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local meta = M(npos)
-	local peer_pos = meta:get_string("peer_pos")
-	local peer_dir = meta:get_int("peer_dir")
-	if peer_pos ~= "" then
-		return P(peer_pos), peer_dir
-	end
-	peer_pos, peer_dir = self:repair_tube_line(pos, dir)
-	self:add_meta(npos, peer_pos, peer_dir)
-	return peer_pos, peer_dir
-end
-
-
-function Tube:get_oldmeta(pos, dir, oldmetadata)
-	if oldmetadata.fields and oldmetadata.fields.peer_pos then
-		return P(oldmetadata.fields.peer_pos), tonumber(oldmetadata.fields.peer_dir)
-	end
-	return self:repair_tube_line(pos, dir)
-end
-
--- Add meta data from the other tube head node
-function Tube:add_meta(pos, peer_pos, peer_dir)
-	local _, node = self:get_node(pos)
-	if self.primary_node_names[node.name] then
-		if self.show_infotext then
-			M(pos):set_string("infotext", S(peer_pos))
-		end
-		M(pos):set_string("peer_pos", S(peer_pos))
-		M(pos):set_int("peer_dir", peer_dir)
+		self.connCache[key][dir] = nil
 	end
 end
 
---------------------------------------------------------------------------------------
--- Further helper functions
---------------------------------------------------------------------------------------
+-- pos/dir are the pos of the secondary nodes pointing to the head tube nodes.
+function Tube:add_to_cache(pos1, dir1, pos2, dir2)
+	local key = S(pos1)
+	if not self.connCache[key] then
+		self.connCache[key] = {}
+	end
+	self.connCache[key][dir1] = {pos2 = pos2, dir2 = dir2}
+end
 
--- Do a correction of param2, delete meta data of all 2-conn-tubes,
--- and return peer_pos, peer_dir, and number of tube nodes.
-function Tube:repair_tube_line(pos, dir)
-	local get_next_tube = function(self, pos, dir)
-		local npos, dir1, dir2, num = self:determine_next_node(pos, dir)
-		if dir1 then
-			M(npos):from_table(nil)
-			if Turn180Deg[dir] == dir1 then
-				return npos, dir2, num
-			else
-				return npos, dir1, num
-			end
-		end
-		return self:get_next_teleport_node(pos, dir)
-	end
-	-- do a correction of "number of neighbours" for all nodes in between
-	local repair_tube = function(self, pos, dir)
-		local _, node = self:primary_node(pos, dir)
-		if node then
-			node.param2 = (2 * 32) + (node.param2 % 32)
-			minetest.swap_node(pos, node)
-		end
-	end
-	
-	local cnt = 0
-	if not dir then	return pos, dir, cnt end	
-	while cnt <= self.max_tube_length do
-		local new_pos, new_dir, num = get_next_tube(self, pos, dir)
-		if not new_dir then	break end
-		if cnt > 0 and num ~= 2 then
-			repair_tube(self, pos, dir)
-		end
-		pos, dir = new_pos, new_dir
-		cnt = cnt + 1
-	end
-	return pos, dir, cnt
-end	
-
--- fpos,fdir points to the secondary node to be updated.
--- npos,ndir are used to calculate the connection data to be stored.
-function Tube:update_secondary_node(fpos,fdir, npos,ndir)
-	-- [s]<-[n]----[f]->[s]
-	print("update_secondary_node", S(fpos), fdir)
-	local fpos2, node = self:get_node(fpos, fdir)
+-- pos/dir are the pos of the secondary nodes pointing to the head tube nodes.
+function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
+	local _, node = self:get_node(pos1)
 	if self.secondary_node_names[node.name] and self.clbk_update_secondary_node then
-		local npos2 = self:get_pos(npos, ndir)
-		if vector.equals(npos2, fpos2) then  -- last tube removed?
-			npos2,ndir = nil,nil  -- used to delete the data base
-		end
-		self.clbk_update_secondary_node(node, fpos2, Turn180Deg[fdir], npos2, ndir)
+		self.clbk_update_secondary_node(node, pos1, dir1, pos2, Turn180Deg[dir2])
 	end
 end
-
 
 --------------------------------------------------------------------------------------
 -- pairing functions
@@ -213,7 +124,7 @@ function Tube:update_after_place_node(pos, dirs)
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
 	end
@@ -227,7 +138,7 @@ function Tube:update_after_dig_node(pos, dirs)
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:del_tube_dir(pos, dir)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
 	end
@@ -235,55 +146,47 @@ function Tube:update_after_dig_node(pos, dirs)
 end
 
 function Tube:update_after_place_tube(pos, placer, pointed_thing)
-	local preferred_pos, fdir = self:get_player_data(placer, pointed_thing)
+	local preferred_pos, fdir = get_player_data(self, placer, pointed_thing)
 	local dir1, dir2, num_tubes = self:determine_tube_dirs(pos, preferred_pos, fdir)
 	if dir1 == nil then
 		return false
 	end
 	if self.valid_dirs[dir1] and self.valid_dirs[dir2] and tValidNum[num_tubes]then
-		self.clbk_after_place_tube(self:tube_data_to_table(pos, dir1, dir2, num_tubes))
+		self.clbk_after_place_tube(get_tube_data(pos, dir1, dir2, num_tubes))
 	end
 	
 	if num_tubes >= 1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
 		end
 	end
 	
 	if num_tubes >= 2 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
+			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
 		end
 	end
 	return true, dir1, dir2, num_tubes
 end	
 	
 function Tube:update_after_dig_tube(pos, param2)
-	local dir1, dir2, num_tubes = self:decode_param2(pos, param2)
+	local dir1, dir2 = self:decode_param2(pos, param2)
 	
-	local lRes = {}
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
 	if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
-		lRes[#lRes+1] = dir1
+		self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+	else
+		dir1 = nil
 	end
 	
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
 	if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-		self.clbk_after_place_tube(self:tube_data_to_table(npos, d1, d2, num))
-		lRes[#lRes+1] = dir2
+		self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+	else
+		dir2 = nil
 	end
-	return lRes
-end
-
-function Tube:update_secondary_nodes_after_dig_tube(pos)
-	local d1, d2 = self:determine_dir1_dir2_and_num_conn(pos)
-	if d1 then
-		self:update_secondary_node(pos,d1, pos,d1)
-	end
-	if d2 then
-		self:update_secondary_node(pos,d2, pos,d2)
-	end
+	
+	return dir1, dir2
 end
