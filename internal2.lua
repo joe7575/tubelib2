@@ -274,6 +274,7 @@ function Tube:add_tube_dir(pos, dir)
 	local npos, node = self:get_node(pos, dir)
 	if self.primary_node_names[node.name] then
 		local d1, d2, num = self:decode_param2(npos, node.param2)
+		if not num then return end
 		-- not already connected to the new tube?
 		dir = Turn180Deg[dir]
 		if d1 ~= dir and dir ~= d2 then

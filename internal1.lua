@@ -47,7 +47,7 @@ end
 local function get_player_data(self, placer, pointed_thing)
 	if placer and pointed_thing and pointed_thing.type == "node" then
 		if placer:get_player_control().sneak then
-			return pointed_thing.under, fdir(placer)
+			return pointed_thing.under, fdir(self, placer)
 		else
 			return nil, fdir(self, placer)
 		end
