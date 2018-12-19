@@ -115,8 +115,9 @@ end
 local function repair_tube(self, pos, dir)
 	local node = get_node_lvm(pos, dir)
 	if self.primary_node_names[node.name] then
-		node.param2 = (2 * 32) + (node.param2 % 32)
-		minetest.set_node(pos, node)
+		local dir1, dir2 = self:decode_param2(pos, node.param2)
+		local param2, tube_type = tubelib2.encode_param2(dir1, dir2, 2)
+		self.clbk_after_place_tube(pos, param2, tube_type, 2)
 	end
 end
 
@@ -344,7 +345,7 @@ function Tube:walk_tube_line(pos, dir)
 		while cnt <= self.max_tube_length do
 			local new_pos, new_dir, num = get_next_tube(self, pos, dir)
 			if not new_dir then	break end
-			if cnt > 0 and num ~= 2 then
+			if cnt > 0 and num ~= 2 and self:primary_node(new_pos, new_dir) then
 				repair_tube(self, new_pos, new_dir)
 			end
 			pos, dir = new_pos, new_dir
