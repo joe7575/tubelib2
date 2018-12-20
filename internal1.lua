@@ -19,6 +19,10 @@ local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local P = minetest.string_to_pos
 local M = minetest.get_meta
 
+-- Load support for intllib.
+local MP = minetest.get_modpath("tubelib2")
+local I,IS = dofile(MP.."/intllib.lua")
+
 local Tube = tubelib2.Tube
 local Turn180Deg = tubelib2.Turn180Deg
 local Dir6dToVector = tubelib2.Dir6dToVector
@@ -99,6 +103,16 @@ function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
 	end
 end
 
+function Tube:infotext(pos1, pos2)
+	if self.show_infotext then
+		if vector.equals(pos1, pos2) then
+			M(pos1):set_string("infotext", I("Not connected!"))
+		else
+			M(pos1):set_string("infotext", I("Connected with ")..S(pos2))
+		end
+	end
+end
+
 --------------------------------------------------------------------------------------
 -- pairing functions
 --------------------------------------------------------------------------------------
@@ -109,7 +123,7 @@ function Tube:store_teleport_data(pos, peer_pos)
 	meta:set_string("tele_pos", S(peer_pos))
 	meta:set_string("channel", nil)
 	meta:set_string("formspec", nil)
-	meta:set_string("infotext", "Connected with "..S(peer_pos))
+	meta:set_string("infotext", I("Connected with ")..S(peer_pos))
 	return meta:get_int("tube_dir")
 end
 

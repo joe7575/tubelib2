@@ -17,6 +17,9 @@ local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local P = minetest.string_to_pos
 local M = minetest.get_meta
 
+-- Load support for intllib.
+local MP = minetest.get_modpath("tubelib2")
+local I,IS = dofile(MP.."/intllib.lua")
 
 local Turn180Deg = {[0]=0,3,4,1,2,6,5}
 tubelib2.Turn180Deg = Turn180Deg
@@ -311,7 +314,7 @@ function Tube:store_teleport_data(pos, peer_pos)
 	meta:set_string("tele_pos", S(peer_pos))
 	meta:set_string("channel", nil)
 	meta:set_string("formspec", nil)
-	meta:set_string("infotext", "Connected with "..S(peer_pos))
+	meta:set_string("infotext", I("Connected with ")..S(peer_pos))
 	return meta:get_int("tube_dir")
 end
 
@@ -350,6 +353,9 @@ function Tube:walk_tube_line(pos, dir)
 			end
 			pos, dir = new_pos, new_dir
 			cnt = cnt + 1
+		end
+		if cnt > self.max_tube_length then
+			return
 		end
 		if cnt > 0 then
 			return pos, dir, cnt

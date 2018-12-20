@@ -19,6 +19,10 @@ tubelib2.version = 0.5
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local M = minetest.get_meta
 
+-- Load support for intllib.
+local MP = minetest.get_modpath("tubelib2")
+local I,IS = dofile(MP.."/intllib.lua")
+
 local Dir2Str = {"north", "east", "south", "west", "down", "up"}
 
 function tubelib2.dir_to_string(dir)
@@ -45,6 +49,8 @@ end
 
 local function update1(self, pos, dir)
 	local fpos,fdir = self:walk_tube_line(pos, dir)
+	self:infotext(get_pos(pos, dir), fpos)
+	self:infotext(fpos, get_pos(pos, dir))
 	-- Translate pos/dir pointing to the secondary node into 
 	-- spos/sdir of the secondary node pointing to the tube.
 	local spos, sdir = get_pos(fpos,fdir), Turn180Deg[fdir]
@@ -58,6 +64,16 @@ end
 local function update2(self, pos1, dir1, pos2, dir2)
 	local fpos1,fdir1 = self:walk_tube_line(pos1, dir1)
 	local fpos2,fdir2 = self:walk_tube_line(pos2, dir2)
+	if not fdir1 or not fdir2 then -- line to long?
+		-- reset next tube(s) to head tube(s) again
+		local param2 = tubelib2.encode_param2(dir1, dir2, 2)
+		self:update_after_dig_tube(pos1, param2)
+		M(get_pos(pos1, dir1)):set_string("infotext", I("Maximum length reached!"))
+		M(get_pos(pos1, dir2)):set_string("infotext", I("Maximum length reached!"))
+		return false 
+	end
+	self:infotext(fpos1, fpos2)
+	self:infotext(fpos2, fpos1)
 	-- Translate fpos/fdir pointing to the secondary node into 
 	-- spos/sdir of the secondary node pointing to the tube.
 	local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
@@ -68,12 +84,15 @@ local function update2(self, pos1, dir1, pos2, dir2)
 	self:add_to_cache(spos2, sdir2, spos1, sdir1)
 	self:update_secondary_node(spos1, sdir1, spos2, sdir2)
 	self:update_secondary_node(spos2, sdir2, spos1, sdir1)
+	return true
 end
 
 local function update3(self, pos, dir1, dir2)
 	if pos and dir1 and dir2 then
 		local fpos1,fdir1,cnt1 = self:walk_tube_line(pos, dir1)
 		local fpos2,fdir2,cnt2 = self:walk_tube_line(pos, dir2)
+		self:infotext(fpos1, fpos2)
+		self:infotext(fpos2, fpos1)
 		-- Translate fpos/fdir pointing to the secondary node into 
 		-- spos/sdir of the secondary node pointing to the tube.
 		local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
@@ -143,7 +162,7 @@ function Tube:after_place_tube(pos, placer, pointed_thing)
 	-- s..secondary, f..far, n..near, x..node to be placed
 	local res,dir1,dir2 = self:update_after_place_tube(pos, placer, pointed_thing)
 	if res then  -- node placed?
-		update2(self, pos, dir1, pos, dir2)
+		return update2(self, pos, dir1, pos, dir2)
 	end
 	return res
 end
@@ -228,7 +247,7 @@ function Tube:prepare_pairing(pos, tube_dir, sFormspec)
 	else
 		meta:set_int("tube_dir", tube_dir)
 		meta:set_string("channel", nil)
-		meta:set_string("infotext", "Unconnected")
+		meta:set_string("infotext", I("Unconnected"))
 		meta:set_string("formspec", sFormspec)
 	end
 end
@@ -246,7 +265,7 @@ function Tube:pairing(pos, channel)
 		self.pairingList[channel] = pos
 		local meta = M(pos)
 		meta:set_string("channel", channel)
-		meta:set_string("infotext", "Unconnected ("..channel..")")
+		meta:set_string("infotext", I("Unconnected").." ("..channel..")")
 		return false
 	end
 end
@@ -262,7 +281,7 @@ function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 				peer_meta:set_string("channel", nil)
 				peer_meta:set_string("tele_pos", nil)
 				peer_meta:set_string("formspec", sFormspec)
-				peer_meta:set_string("infotext", "Unconnected")
+				peer_meta:set_string("infotext", I("Unconnected"))
 			end
 		elseif oldmetadata.fields.channel then
 			self.pairingList[oldmetadata.fields.channel] = nil

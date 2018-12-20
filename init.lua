@@ -1,7 +1,11 @@
 tubelib2 = {}
 
-dofile(minetest.get_modpath("tubelib2") .. "/internal2.lua")
-dofile(minetest.get_modpath("tubelib2") .. "/internal1.lua")
-dofile(minetest.get_modpath("tubelib2") .. "/tube_api.lua")
+local MP = minetest.get_modpath("tubelib2")
+
+-- Load support for intllib.
+dofile(MP .. "/intllib.lua")
+dofile(MP .. "/internal2.lua")
+dofile(MP .. "/internal1.lua")
+dofile(MP .. "/tube_api.lua")
 -- Only for testing/demo purposes
-dofile(minetest.get_modpath("tubelib2") .. "/tube_test.lua")
+--dofile(MP .. "/tube_test.lua")

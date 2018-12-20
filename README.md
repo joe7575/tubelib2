@@ -53,6 +53,8 @@ func(node, pos, out_dir, peer_pos, peer_in_dir) will be called for every change 
 
 ## Dependencies
 default  
+optional: intllib
+
 
 # License
 Copyright (C) 2017-2018 Joachim Stolberg  
@@ -60,9 +62,11 @@ Code: Licensed under the GNU LGPL version 2.1 or later.
       See LICENSE.txt and http://www.gnu.org/licenses/lgpl-2.1.txt  
 Textures: CC0
 
+
 ## History
 - 2018-10-20  v0.1  * Tested against hyperloop elevator.
 - 2018-10-27  v0.2  * Tested against and enhanced for the hyperloop mod.
 - 2018-10-27  v0.3  * Further improvements.
 - 2018-11-09  v0.4  * on_update function for secondary nodes introduced
 - 2018-12-16  v0.5  * meta data removed, memory cache added instead of
+- 2018-12-20  v0.6  * intllib support added, max tube length bugfix
