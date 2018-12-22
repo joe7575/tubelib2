@@ -98,8 +98,12 @@ end
 -- pos/dir are the pos of the secondary nodes pointing to the head tube nodes.
 function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
 	local _, node = self:get_node(pos1)
-	if self.secondary_node_names[node.name] and self.clbk_update_secondary_node then
-		self.clbk_update_secondary_node(node, pos1, dir1, pos2, Turn180Deg[dir2])
+	if self.secondary_node_names[node.name] then
+		if minetest.registered_nodes[node.name].tubelib2_on_update then
+			minetest.registered_nodes[node.name].tubelib2_on_update(node, pos1, dir1, pos2, Turn180Deg[dir2])			
+		elseif self.clbk_update_secondary_node then
+			self.clbk_update_secondary_node(node, pos1, dir1, pos2, Turn180Deg[dir2])
+		end
 	end
 end
 
@@ -123,7 +127,7 @@ function Tube:store_teleport_data(pos, peer_pos)
 	meta:set_string("tele_pos", S(peer_pos))
 	meta:set_string("channel", nil)
 	meta:set_string("formspec", nil)
-	meta:set_string("infotext", I("Connected with ")..S(peer_pos))
+	meta:set_string("infotext", I("Paired with ")..S(peer_pos))
 	return meta:get_int("tube_dir")
 end
 

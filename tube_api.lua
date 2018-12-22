@@ -244,16 +244,18 @@ function Tube:prepare_pairing(pos, tube_dir, sFormspec)
 	if meta:get_int("tube_dir") ~= 0 then -- already prepared?
 		-- update tube_dir only
 		meta:set_int("tube_dir", tube_dir)
-	else
+	elseif tube_dir then
 		meta:set_int("tube_dir", tube_dir)
 		meta:set_string("channel", nil)
-		meta:set_string("infotext", I("Unconnected"))
+		meta:set_string("infotext", I("Pairing is missing"))
 		meta:set_string("formspec", sFormspec)
+	else
+		meta:set_string("infotext", I("Connection to a tube is missing!"))
 	end
 end
 
 function Tube:pairing(pos, channel)
-	if self.pairingList[channel] and pos ~= self.pairingList[channel] then
+	if self.pairingList[channel] and not vector.equals(pos, self.pairingList[channel]) then
 		-- store peer position on both nodes
 		local peer_pos = self.pairingList[channel]
 		local tube_dir1 = self:store_teleport_data(pos, peer_pos)
@@ -265,7 +267,7 @@ function Tube:pairing(pos, channel)
 		self.pairingList[channel] = pos
 		local meta = M(pos)
 		meta:set_string("channel", channel)
-		meta:set_string("infotext", I("Unconnected").." ("..channel..")")
+		meta:set_string("infotext", I("Pairing is missing").." ("..channel..")")
 		return false
 	end
 end
@@ -281,7 +283,7 @@ function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 				peer_meta:set_string("channel", nil)
 				peer_meta:set_string("tele_pos", nil)
 				peer_meta:set_string("formspec", sFormspec)
-				peer_meta:set_string("infotext", I("Unconnected"))
+				peer_meta:set_string("infotext", I("Pairing is missing"))
 			end
 		elseif oldmetadata.fields.channel then
 			self.pairingList[oldmetadata.fields.channel] = nil
