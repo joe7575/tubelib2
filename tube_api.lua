@@ -53,12 +53,14 @@ local function update1(self, pos, dir)
 	self:infotext(fpos, get_pos(pos, dir))
 	-- Translate pos/dir pointing to the secondary node into 
 	-- spos/sdir of the secondary node pointing to the tube.
-	local spos, sdir = get_pos(fpos,fdir), Turn180Deg[fdir]
-	self:del_from_cache(spos, sdir)
-	self:add_to_cache(pos, dir, spos, sdir)
-	self:add_to_cache(spos, sdir, pos, dir)
-	self:update_secondary_node(pos, dir, spos, sdir)
-	self:update_secondary_node(spos, sdir, pos, dir)
+	if fpos and fdir then
+		local spos, sdir = get_pos(fpos,fdir), Turn180Deg[fdir]
+		self:del_from_cache(spos, sdir)
+		self:add_to_cache(pos, dir, spos, sdir)
+		self:add_to_cache(spos, sdir, pos, dir)
+		self:update_secondary_node(pos, dir, spos, sdir)
+		self:update_secondary_node(spos, sdir, pos, dir)
+	end
 end
 
 local function update2(self, pos1, dir1, pos2, dir2)
@@ -151,7 +153,11 @@ function Tube:after_place_node(pos, dirs)
 	-- [s][f]----[n] x
 	-- s..secondary, f..far, n..near, x..node to be placed
 	for _,dir in ipairs(self:update_after_place_node(pos, dirs)) do
-		update1(self, pos, dir)
+		if pos and dir then
+			update1(self, pos, dir)
+		else
+			print("after_place_node", dump(pos), dir)
+		end
 	end
 end
 

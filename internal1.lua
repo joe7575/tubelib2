@@ -109,10 +109,12 @@ end
 
 function Tube:infotext(pos1, pos2)
 	if self.show_infotext then
-		if vector.equals(pos1, pos2) then
-			M(pos1):set_string("infotext", I("Not connected!"))
-		else
-			M(pos1):set_string("infotext", I("Connected with ")..S(pos2))
+		if pos1 and pos2 then
+			if vector.equals(pos1, pos2) then
+				M(pos1):set_string("infotext", I("Not connected!"))
+			else
+				M(pos1):set_string("infotext", I("Connected with ")..S(pos2))
+			end
 		end
 	end
 end
