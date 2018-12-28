@@ -97,15 +97,18 @@ local function update3(self, pos, dir1, dir2)
 		self:infotext(fpos2, fpos1)
 		-- Translate fpos/fdir pointing to the secondary node into 
 		-- spos/sdir of the secondary node pointing to the tube.
-		local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
-		local spos2, sdir2 = get_pos(fpos2,fdir2), Turn180Deg[fdir2]
-		self:del_from_cache(spos1, sdir1)
-		self:del_from_cache(spos2, sdir2)
-		self:add_to_cache(spos1, sdir1, spos2, sdir2)
-		self:add_to_cache(spos2, sdir2, spos1, sdir1)
-		self:update_secondary_node(spos1, sdir1, spos2, sdir2)
-		self:update_secondary_node(spos2, sdir2, spos1, sdir1)
-		return dir1, dir2, fpos1, fpos2, fdir1, fdir2, cnt1 or 0, cnt2 or 0
+		if fpos1 and fpos2 and fdir1 and fdir2 then
+			local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
+			local spos2, sdir2 = get_pos(fpos2,fdir2), Turn180Deg[fdir2]
+			self:del_from_cache(spos1, sdir1)
+			self:del_from_cache(spos2, sdir2)
+			self:add_to_cache(spos1, sdir1, spos2, sdir2)
+			self:add_to_cache(spos2, sdir2, spos1, sdir1)
+			self:update_secondary_node(spos1, sdir1, spos2, sdir2)
+			self:update_secondary_node(spos2, sdir2, spos1, sdir1)
+			return dir1, dir2, fpos1, fpos2, fdir1, fdir2, cnt1 or 0, cnt2 or 0
+		end
+		return dir1, dir2, pos, pos, dir1, dir2, cnt1 or 0, cnt2 or 0
 	end
 end
 
