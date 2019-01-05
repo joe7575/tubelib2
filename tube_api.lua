@@ -299,3 +299,21 @@ function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 		end
 	end
 end
+
+
+-- Used by chat commands, when tubes are placed e.g. via WorldEdit
+function Tube:replace_tube_line(pos1, pos2)
+	if pos1 and pos2 and not vector.equals(pos1, pos2) then
+		local check = (((pos1.x == pos2.x) and 1) or 0) + 
+				(((pos1.y == pos2.y) and 1) or 0) + 
+				(((pos1.z == pos2.z) and 1) or 0)
+		if check == 2 then
+			local v = vector.direction(pos1, pos2)
+			local dir1 = minetest.dir_to_facedir(v, true) + 1
+			local dir2 = Turn180Deg[dir1]
+		
+			self:replace_nodes(pos1, pos2, dir1, dir2)
+			update3(self, pos1, dir1, dir2)
+		end
+	end
+end

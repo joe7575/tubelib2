@@ -304,7 +304,7 @@ function Tube:del_tube_dir(pos, dir)
 	local npos, node = self:get_node(pos, dir)
 	if self.primary_node_names[node.name] then
 		local d1, d2, num = self:decode_param2(npos, node.param2)
-		return npos, d1, d2, math.max(num - 1, 0)
+		return npos, d1, d2, math.max((num or 1) - 1, 0)
 	end
 end
 	

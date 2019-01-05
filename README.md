@@ -55,7 +55,7 @@ optional: intllib
 
 
 # License
-Copyright (C) 2017-2018 Joachim Stolberg  
+Copyright (C) 2017-2019 Joachim Stolberg  
 Code: Licensed under the GNU LGPL version 2.1 or later.
       See LICENSE.txt and http://www.gnu.org/licenses/lgpl-2.1.txt  
 Textures: CC0
@@ -68,3 +68,5 @@ Textures: CC0
 - 2018-11-09  v0.4  * on_update function for secondary nodes introduced
 - 2018-12-16  v0.5  * meta data removed, memory cache added instead of
 - 2018-12-20  v0.6  * intllib support added, max tube length bugfix
+- 2019-01-06  v0.7  * API function replace_tube_line added, bug fixed
+ 
