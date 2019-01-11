@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 0.5
+tubelib2.version = 0.8
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end

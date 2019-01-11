@@ -69,4 +69,5 @@ Textures: CC0
 - 2018-12-16  v0.5  * meta data removed, memory cache added instead of
 - 2018-12-20  v0.6  * intllib support added, max tube length bugfix
 - 2019-01-06  v0.7  * API function replace_tube_line added, bug fixed
+- 2019-01-11  v0.8  * dir_to_facedir bugfix
  

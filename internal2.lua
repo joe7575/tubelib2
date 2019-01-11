@@ -204,7 +204,14 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	-- then the other side of the new tube shall point to the player.
 	if preferred_pos and self:friendly_primary_node(preferred_pos) then
 		local v = vector.direction(pos, preferred_pos)
-		local dir1 = minetest.dir_to_facedir(v, true) + 1
+		local dir1
+		if v.y > 0 then
+			dir1 = 6
+		elseif v.y < 0 then
+			dir1 = 5
+		else
+			dir1 = minetest.dir_to_facedir(v) + 1
+		end
 		local dir2 = Turn180Deg[fdir]
 		return dir1, dir2, 1
 	end
