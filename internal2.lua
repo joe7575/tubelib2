@@ -21,9 +21,10 @@ local M = minetest.get_meta
 local MP = minetest.get_modpath("tubelib2")
 local I,IS = dofile(MP.."/intllib.lua")
 
+
+local Tube = {}
+
 local Turn180Deg = {[0]=0,3,4,1,2,6,5}
-tubelib2.Turn180Deg = Turn180Deg
-tubelib2.Tube = {}
 
 -- To calculate param2 based on dir6d information
 local DirToParam2 = {
@@ -62,8 +63,6 @@ local Dir6dToVector = {[0] =
 	{x=0,  y=1,  z=0},
 }
 
-tubelib2.Dir6dToVector = Dir6dToVector
-
 local VectorToDir6d = {
 	[{x=0,  y=0,  z=1}] = 1,
 	[{x=1,  y=0,  z=0}] = 2,
@@ -74,11 +73,19 @@ local VectorToDir6d = {
 }
 
 
+tubelib2.Tube = Tube
+tubelib2.Turn180Deg = Turn180Deg
+tubelib2.DirToParam2 = DirToParam2
+tubelib2.Param2ToDir = Param2ToDir
+tubelib2.Dir6dToVector = Dir6dToVector
+tubelib2.VectorToDir6d = VectorToDir6d
+
+
 --
--- Local Functions
+-- Tubelib2 Methods
 --
 
-local function get_node_lvm(pos)
+function Tube:get_node_lvm(pos)
 	local node = minetest.get_node_or_nil(pos)
 	if node then
 		return node
@@ -96,65 +103,32 @@ local function get_node_lvm(pos)
 	return node
 end
 
-local function get_next_tube(self, pos, dir)
+-- Read param2 from a primary node at the given position.
+-- If dir == nil then node_pos = pos 
+-- Function returns param2, new_pos or nil
+function Tube:get_primary_node_param2(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local node = get_node_lvm(npos)
+	local node = self:get_node_lvm(npos)
 	if self.primary_node_names[node.name] then
-		-- decode param2
-		local val = Param2ToDir[node.param2 % 32]
-		if val then
-			local dir1, dir2 = math.floor(val / 10), val % 10
-			local num_conn = math.floor(node.param2 / 32)
-			if Turn180Deg[dir] == dir1 then
-				return npos, dir2, num_conn
-			else
-				return npos, dir1, num_conn
-			end
-		end
-	end
-	return self:get_next_teleport_node(pos, dir)
-end
-
-local function repair_tube(self, pos, dir)
-	local node = get_node_lvm(pos, dir)
-	if self.primary_node_names[node.name] then
-		local dir1, dir2 = self:decode_param2(pos, node.param2)
-		local param2, tube_type = tubelib2.encode_param2(dir1, dir2, 2)
-		self.clbk_after_place_tube(pos, param2, tube_type, 2)
+		return node.param2, npos
 	end
 end
-
--- Return param2 and tube type ("A"/"S")
-function tubelib2.encode_param2(dir1, dir2, num_conn)
-	if dir1 > dir2 then
-		dir1, dir2 = dir2, dir1
-	end
-	local param2, _type = unpack(DirToParam2[dir1 * 10 + dir2] or {0, "S"})
-	return (num_conn * 32) + param2, _type
-end
-
-
---
--- Tubelib2 Methods
---
-
-local Tube = tubelib2.Tube
 
 -- Check if node at given position is a tube node
 -- If dir == nil then node_pos = pos 
--- Function returns the new pos or nil
-function Tube:primary_node(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		return npos, node
-	end
+-- Function returns true/false
+function Tube:is_primary_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	return self.primary_node_names[node.name]
 end
 
 -- Check if node at given position is a secondary node
 -- If dir == nil then node_pos = pos 
 -- Function returns the new pos or nil
 function Tube:secondary_node(pos, dir)
-	local npos, node = self:get_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
 	if self.secondary_node_names[node.name] then
 		return npos
 	end
@@ -162,11 +136,33 @@ end
 
 -- Check if node has a connection on the given dir
 function Tube:connected(pos, dir)
-	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local node = get_node_lvm(npos)
-	return self.primary_node_names[node.name] 
-		or self.secondary_node_names[node.name]
+	return self:is_primary_node(pos, dir) or self:secondary_node(pos, dir)
 end
+
+function Tube:get_next_tube(pos, dir)
+	local param2, npos = self:get_primary_node_param2(pos, dir)
+	if param2 then
+		local val = Param2ToDir[param2 % 32]
+		local dir1, dir2 = math.floor(val / 10), val % 10
+		local num_conn = math.floor(param2 / 32)
+		if Turn180Deg[dir] == dir1 then
+			return npos, dir2, num_conn
+		else
+			return npos, dir1, num_conn
+		end
+	end
+	return self:get_next_teleport_node(pos, dir)
+end
+
+-- Return param2 and tube type ("A"/"S")
+function Tube:encode_param2(dir1, dir2, num_conn)
+	if dir1 > dir2 then
+		dir1, dir2 = dir2, dir1
+	end
+	local param2, _type = unpack(DirToParam2[dir1 * 10 + dir2] or {0, "S"})
+	return (num_conn * 32) + param2, _type
+end
+
 
 -- Return dir1, dir2, num_conn
 function Tube:decode_param2(pos, param2)
@@ -178,17 +174,32 @@ function Tube:decode_param2(pos, param2)
 	end
 end
 
+function Tube:repair_tube(pos, dir)
+	local param2 = self:get_primary_node_param2(pos, dir)
+	if param2 then
+		local dir1, dir2 = self:decode_param2(pos, param2)
+		local param2, tube_type = self:encode_param2(dir1, dir2, 2)
+		self.clbk_after_place_tube(pos, param2, tube_type, 2)
+	end
+end
+
 -- Return node next to pos in direction 'dir'
 function Tube:get_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	return npos, get_node_lvm(npos)
+	return npos, self:get_node_lvm(npos)
 end
+
+-- format and return given data as table
+function Tube:get_tube_data(pos, dir1, dir2, num_tubes)
+	local param2, tube_type = self:encode_param2(dir1, dir2, num_tubes)
+	return pos, param2, tube_type, num_tubes
+end	
 
 -- Return pos for a primary_node and true if num_conn < 2, else false
 function Tube:friendly_primary_node(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		local _,_,num_conn = self:decode_param2(npos, node.param2)
+	local param2, npos = self:get_primary_node_param2(pos, dir)
+	if param2 then
+		local _,_,num_conn = self:decode_param2(npos, param2)
 		-- tube node with max one connection?
 		return npos, (num_conn or 2) < 2
 	end
@@ -290,9 +301,9 @@ end
 -- and return the new data to be able to update the node: 
 -- new_pos, dir1, dir2, num_connections (1, 2)
 function Tube:add_tube_dir(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		local d1, d2, num = self:decode_param2(npos, node.param2)
+	local param2, npos = self:get_primary_node_param2(pos, dir)
+	if param2 then
+		local d1, d2, num = self:decode_param2(npos, param2)
 		if not num then return end
 		-- not already connected to the new tube?
 		dir = Turn180Deg[dir]
@@ -316,9 +327,9 @@ end
 -- and return the new data to be able to update the node: 
 -- new_pos, dir1, dir2, num_connections (0, 1)
 function Tube:del_tube_dir(pos, dir)
-	local npos, node = self:get_node(pos, dir)
-	if self.primary_node_names[node.name] then
-		local d1, d2, num = self:decode_param2(npos, node.param2)
+	local param2, npos = self:get_primary_node_param2(pos, dir)
+	if param2 then
+		local d1, d2, num = self:decode_param2(npos, param2)
 		-- check if node is connected to the given pos
 		dir = Turn180Deg[dir]
 		if d1 == dir or dir == d2 then
@@ -339,14 +350,16 @@ end
 
 -- Jump over the teleport nodes to the next tube node
 function Tube:get_next_teleport_node(pos, dir)
-	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local meta = M(npos)
-	local s = meta:get_string("tele_pos")
-	if s ~= "" then
-		local tele_pos = P(s)
-		local tube_dir = M(tele_pos):get_int("tube_dir")
-		if tube_dir ~= 0 then
-			return tele_pos, tube_dir
+	if pos then
+		local npos = vector.add(pos, Dir6dToVector[dir or 0])
+		local meta = M(npos)
+		local s = meta:get_string("tele_pos")
+		if s ~= "" then
+			local tele_pos = P(s)
+			local tube_dir = M(tele_pos):get_int("tube_dir")
+			if tube_dir ~= 0 then
+				return tele_pos, tube_dir
+			end
 		end
 	end
 end
@@ -365,10 +378,10 @@ function Tube:walk_tube_line(pos, dir)
 	local cnt = 0
 	if dir then
 		while cnt <= self.max_tube_length do
-			local new_pos, new_dir, num = get_next_tube(self, pos, dir)
-			if not new_dir then	break end
-			if cnt > 0 and num ~= 2 and self:primary_node(new_pos, new_dir) then
-				repair_tube(self, new_pos, new_dir)
+			local new_pos, new_dir, num = self:get_next_tube(pos, dir)
+			if not new_pos then	break end
+			if cnt > 0 and num ~= 2 and self:is_primary_node(new_pos, new_dir) then
+				self:repair_tube(new_pos, new_dir)
 			end
 			pos, dir = new_pos, new_dir
 			cnt = cnt + 1

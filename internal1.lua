@@ -21,23 +21,16 @@ local M = minetest.get_meta
 
 -- Load support for intllib.
 local MP = minetest.get_modpath("tubelib2")
-local I,IS = dofile(MP.."/intllib.lua")
+local I,_ = dofile(MP.."/intllib.lua")
 
 local Tube = tubelib2.Tube
 local Turn180Deg = tubelib2.Turn180Deg
 local Dir6dToVector = tubelib2.Dir6dToVector
-local encode_param2 = tubelib2.encode_param2
 local tValidNum = {[0] = true, true, true}  -- 0..2 are valid
 
 local function get_pos(pos, dir)
 	return vector.add(pos, Dir6dToVector[dir or 0])
 end
-
--- format and return given data as table
-local function get_tube_data(pos, dir1, dir2, num_tubes)
-	local param2, tube_type = encode_param2(dir1, dir2, num_tubes)
-	return pos, param2, tube_type, num_tubes
-end	
 
 local function fdir(self, player)
 	local pitch = player:get_look_pitch()
@@ -70,7 +63,7 @@ end
 function Tube:get_primary_dir(pos)
 	-- Check all valid positions
 	for dir = 1,6 do
-		if self:primary_node(pos, dir) then
+		if self:is_primary_node(pos, dir) then
 			return dir
 		end
 	end
@@ -148,7 +141,7 @@ function Tube:update_after_place_node(pos, dirs)
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+			self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
 	end
@@ -162,7 +155,7 @@ function Tube:update_after_dig_node(pos, dirs)
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:del_tube_dir(pos, dir)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+			self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
 	end
@@ -176,20 +169,20 @@ function Tube:update_after_place_tube(pos, placer, pointed_thing)
 		return false
 	end
 	if self.valid_dirs[dir1] and self.valid_dirs[dir2] and tValidNum[num_tubes]then
-		self.clbk_after_place_tube(get_tube_data(pos, dir1, dir2, num_tubes))
+		self.clbk_after_place_tube(self:get_tube_data(pos, dir1, dir2, num_tubes))
 	end
 	
 	if num_tubes >= 1 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir1)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+			self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 		end
 	end
 	
 	if num_tubes >= 2 then
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir2)
 		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-			self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+			self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 		end
 	end
 	return true, dir1, dir2, num_tubes
@@ -200,14 +193,14 @@ function Tube:update_after_dig_tube(pos, param2)
 	
 	local npos, d1, d2, num = self:del_tube_dir(pos, dir1)
 	if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-		self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+		self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 	else
 		dir1 = nil
 	end
 	
 	npos, d1, d2, num = self:del_tube_dir(pos, dir2)
 	if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
-		self.clbk_after_place_tube(get_tube_data(npos, d1, d2, num))
+		self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 	else
 		dir2 = nil
 	end
@@ -217,12 +210,12 @@ end
 
 -- Used by chat commands, when tubes are placed e.g. via WorldEdit
 function Tube:replace_nodes(pos1, pos2, dir1, dir2)
-	self.clbk_after_place_tube(get_tube_data(pos1, dir1, dir2, 1))
+	self.clbk_after_place_tube(self:get_tube_data(pos1, dir1, dir2, 1))
 	local pos = get_pos(pos1, dir1)
 	while not vector.equals(pos, pos2) do
-		self.clbk_after_place_tube(get_tube_data(pos, dir1, dir2, 2))
+		self.clbk_after_place_tube(self:get_tube_data(pos, dir1, dir2, 2))
 		pos = get_pos(pos, dir1)
 	end
-	self.clbk_after_place_tube(get_tube_data(pos2, dir1, dir2, 1))
+	self.clbk_after_place_tube(self:get_tube_data(pos2, dir1, dir2, 1))
 end	
 

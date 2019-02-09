@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 0.8
+tubelib2.version = 0.9
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -21,7 +21,7 @@ local M = minetest.get_meta
 
 -- Load support for intllib.
 local MP = minetest.get_modpath("tubelib2")
-local I,IS = dofile(MP.."/intllib.lua")
+local I,_ = dofile(MP.."/intllib.lua")
 
 local Dir2Str = {"north", "east", "south", "west", "down", "up"}
 
@@ -112,6 +112,28 @@ local function update3(self, pos, dir1, dir2)
 	end
 end
 
+local function update4(self, pos, dirs)
+	dirs = dirs or self.dirs_to_check
+	for _,dir in ipairs(dirs) do
+		local npos = self:secondary_node(pos, dir)
+		if npos then
+			self:update_secondary_node(npos, Turn180Deg[dir], pos, dir)
+			self:update_secondary_node(pos, dir, npos, Turn180Deg[dir])
+		end
+	end
+end
+
+local function update5(self, pos, dirs)
+	dirs = dirs or self.dirs_to_check
+	for _,dir in ipairs(dirs) do
+		local npos = self:secondary_node(pos, dir)
+		if npos then
+			self:update_secondary_node(npos, Turn180Deg[dir])
+			self:update_secondary_node(pos, dir)
+		end
+	end
+end
+
 --
 -- API Functions
 --
@@ -158,10 +180,9 @@ function Tube:after_place_node(pos, dirs)
 	for _,dir in ipairs(self:update_after_place_node(pos, dirs)) do
 		if pos and dir then
 			update1(self, pos, dir)
-		else
-			print("after_place_node", dump(pos), dir)
 		end
 	end
+	update4(self, pos, dirs)
 end
 
 -- To be called after a tube/primary node is placed.
@@ -182,6 +203,7 @@ function Tube:after_dig_node(pos, dirs)
 	for _,dir in ipairs(self:update_after_dig_node(pos, dirs)) do
 		update1(self, pos, dir)
 	end
+	update5(self, pos, dirs)
 end
 
 -- To be called after a tube/primary node is removed.
@@ -224,17 +246,17 @@ end
 -- To be called from a repair tool in the case of a "WorldEdit" or with
 -- legacy nodes corrupted tube line.
 function Tube:tool_repair_tube(pos)
-	local _, node = self:primary_node(pos)
-	if node then
-		local dir1, dir2 = self:decode_param2(pos, node.param2)
+	local param2  = self:get_primary_node_param2(pos)
+	if param2 then
+		local dir1, dir2 = self:decode_param2(pos, param2)
 		return update3(self, pos, dir1, dir2)
 	end
 end
 
 -- To be called from a repair tool in the case, tube nodes are "unbreakable".
 function Tube:tool_remove_tube(pos, sound)
-	local _,node = self:get_node(pos)
-	if self.primary_node_names[node.name] then
+	if self:is_primary_node(pos) then
+		local _,node = self:get_node(pos)
 		minetest.sound_play({name=sound},{
 				pos=pos,
 				gain=1,
