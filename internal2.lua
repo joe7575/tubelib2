@@ -175,11 +175,11 @@ function Tube:decode_param2(pos, param2)
 end
 
 function Tube:repair_tube(pos, dir)
-	local param2 = self:get_primary_node_param2(pos, dir)
+	local param2, npos = self:get_primary_node_param2(pos, dir)
 	if param2 then
-		local dir1, dir2 = self:decode_param2(pos, param2)
+		local dir1, dir2 = self:decode_param2(npos, param2)
 		local param2, tube_type = self:encode_param2(dir1, dir2, 2)
-		self.clbk_after_place_tube(pos, param2, tube_type, 2)
+		self.clbk_after_place_tube(npos, param2, tube_type, 2)
 	end
 end
 
@@ -213,7 +213,7 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	
 	-- If the node at players "prefered position" is a tube,
 	-- then the other side of the new tube shall point to the player.
-	if preferred_pos and self:friendly_primary_node(preferred_pos) then
+	if preferred_pos and self:friendly_primary_node(preferred_pos)[1] then
 		local v = vector.direction(pos, preferred_pos)
 		local dir1
 		if v.y > 0 then

@@ -68,7 +68,7 @@ local function update2(self, pos1, dir1, pos2, dir2)
 	local fpos2,fdir2 = self:walk_tube_line(pos2, dir2)
 	if not fdir1 or not fdir2 then -- line to long?
 		-- reset next tube(s) to head tube(s) again
-		local param2 = tubelib2.encode_param2(dir1, dir2, 2)
+		local param2 = self:encode_param2(dir1, dir2, 2)
 		self:update_after_dig_tube(pos1, param2)
 		M(get_pos(pos1, dir1)):set_string("infotext", I("Maximum length reached!"))
 		M(get_pos(pos1, dir2)):set_string("infotext", I("Maximum length reached!"))
