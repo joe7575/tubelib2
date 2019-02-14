@@ -213,19 +213,21 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	
 	-- If the node at players "prefered position" is a tube,
 	-- then the other side of the new tube shall point to the player.
-	local npos, friendly = self:friendly_primary_node(preferred_pos)
-	if preferred_pos and friendly then
-		local v = vector.direction(pos, preferred_pos)
-		local dir1
-		if v.y > 0 then
-			dir1 = 6
-		elseif v.y < 0 then
-			dir1 = 5
-		else
-			dir1 = minetest.dir_to_facedir(v) + 1
+	if preferred_pos then
+		local _, friendly = self:friendly_primary_node(preferred_pos)
+		if friendly then
+			local v = vector.direction(pos, preferred_pos)
+			local dir1
+			if v.y > 0 then
+				dir1 = 6
+			elseif v.y < 0 then
+				dir1 = 5
+			else
+				dir1 = minetest.dir_to_facedir(v) + 1
+			end
+			local dir2 = Turn180Deg[fdir]
+			return dir1, dir2, 1
 		end
-		local dir2 = Turn180Deg[fdir]
-		return dir1, dir2, 1
 	end
 	-- Check for primary nodes (tubes)
 	for dir = 1,6 do
