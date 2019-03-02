@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 0.9
+tubelib2.version = 1.1
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -46,6 +46,7 @@ local Dir6dToVector = tubelib2.Dir6dToVector
 local function get_pos(pos, dir)
 	return vector.add(pos, Dir6dToVector[dir or 0])
 end
+tubelib2.get_pos = get_pos
 
 local function update1(self, pos, dir)
 	local fpos,fdir = self:walk_tube_line(pos, dir)
@@ -331,11 +332,16 @@ function Tube:replace_tube_line(pos1, pos2)
 				(((pos1.z == pos2.z) and 1) or 0)
 		if check == 2 then
 			local v = vector.direction(pos1, pos2)
-			local dir1 = minetest.dir_to_facedir(v, true) + 1
+			local dir1 = self:vector_to_dir(v)
 			local dir2 = Turn180Deg[dir1]
 		
 			self:replace_nodes(pos1, pos2, dir1, dir2)
 			update3(self, pos1, dir1, dir2)
 		end
 	end
+end
+
+-- Used to change the tube nodes texture (e.g. on/off state)
+function Tube:switch_tube_line(pos, dir, state)
+	self:switch_nodes(pos, dir, state)
 end

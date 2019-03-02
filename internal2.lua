@@ -190,9 +190,9 @@ function Tube:get_node(pos, dir)
 end
 
 -- format and return given data as table
-function Tube:get_tube_data(pos, dir1, dir2, num_tubes)
+function Tube:get_tube_data(pos, dir1, dir2, num_tubes, state)
 	local param2, tube_type = self:encode_param2(dir1, dir2, num_tubes)
-	return pos, param2, tube_type, num_tubes
+	return pos, param2, tube_type, num_tubes, state
 end	
 
 -- Return pos for a primary_node and true if num_conn < 2, else false
@@ -202,6 +202,16 @@ function Tube:friendly_primary_node(pos, dir)
 		local _,_,num_conn = self:decode_param2(npos, param2)
 		-- tube node with max one connection?
 		return npos, (num_conn or 2) < 2
+	end
+end
+
+function Tube:vector_to_dir(v)
+	if v.y > 0 then
+		return 6
+	elseif v.y < 0 then
+		return 5
+	else
+		return minetest.dir_to_facedir(v) + 1
 	end
 end
 
@@ -217,14 +227,7 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 		local _, friendly = self:friendly_primary_node(preferred_pos)
 		if friendly then
 			local v = vector.direction(pos, preferred_pos)
-			local dir1
-			if v.y > 0 then
-				dir1 = 6
-			elseif v.y < 0 then
-				dir1 = 5
-			else
-				dir1 = minetest.dir_to_facedir(v) + 1
-			end
+			local dir1 = self:vector_to_dir(v)
 			local dir2 = Turn180Deg[fdir]
 			return dir1, dir2, 1
 		end

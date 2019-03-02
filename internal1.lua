@@ -140,7 +140,7 @@ function Tube:update_after_place_node(pos, dirs)
 	dirs = dirs or self.dirs_to_check
 	for _,dir in ipairs(dirs) do
 		local npos, d1, d2, num = self:add_tube_dir(pos, dir)
-		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and tValidNum[num]then
+		if npos and self.valid_dirs[d1] and self.valid_dirs[d2] and num and num < 2 then
 			self.clbk_after_place_tube(self:get_tube_data(npos, d1, d2, num))
 			lRes[#lRes+1] = dir
 		end
@@ -219,3 +219,25 @@ function Tube:replace_nodes(pos1, pos2, dir1, dir2)
 	self.clbk_after_place_tube(self:get_tube_data(pos2, dir1, dir2, 1))
 end	
 
+
+function Tube:switch_nodes(pos, dir, state)
+	pos = get_pos(pos, dir)
+	local old_dir = dir
+	while pos do
+		local param2 = self:get_primary_node_param2(pos)
+		if param2 then
+			local dir1, dir2, num_conn = self:decode_param2(pos, param2)
+			self.clbk_after_place_tube(self:get_tube_data(pos, dir1, dir2, num_conn, state))
+			print(S(pos), param2, dir1, dir2, num_conn)
+			if dir1 == Turn180Deg[old_dir] then
+				pos = get_pos(pos, dir2)
+				old_dir = dir2
+			else
+				pos = get_pos(pos, dir1)
+				old_dir = dir1
+			end
+		else
+			break
+		end
+	end
+end

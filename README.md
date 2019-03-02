@@ -72,3 +72,4 @@ Textures: CC0
 - 2019-01-11  v0.8  * dir_to_facedir bugfix
 - 2019-02-09  v0.9  * storage.lua added, code partly restructured
 - 2019-02-17  v1.0  * released 
+- 2019-03-02  v1.1  * API function added, place secondary node bugfix 
