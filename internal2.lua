@@ -325,7 +325,7 @@ function Tube:add_tube_dir(pos, dir)
 				end
 			end
 		end
-		return npos, d1, d2, math.min(num + 1, 2)
+		return npos, d1, d2, num
 	end
 end
 
