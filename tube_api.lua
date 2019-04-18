@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 1.1
+tubelib2.version = 1.2
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -146,6 +146,7 @@ function Tube:new(attr)
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
 		secondary_node_names = Tbl(attr.secondary_node_names or {}),
 		show_infotext = attr.show_infotext or false,
+		force_to_use_tubes = attr.force_to_use_tubes or false, 
 		clbk_after_place_tube = attr.after_place_tube,
 		pairingList = {}, -- teleporting nodes
 		connCache = {}, -- connection cache {pos1 = {dir1 = {pos2 = pos2, dir2 = dir2},...}
@@ -183,7 +184,9 @@ function Tube:after_place_node(pos, dirs)
 			update1(self, pos, dir)
 		end
 	end
-	update4(self, pos, dirs)
+	if not self.force_to_use_tubes then
+		update4(self, pos, dirs)
+	end
 end
 
 -- To be called after a tube/primary node is placed.
@@ -204,7 +207,9 @@ function Tube:after_dig_node(pos, dirs)
 	for _,dir in ipairs(self:update_after_dig_node(pos, dirs)) do
 		update1(self, pos, dir)
 	end
-	update5(self, pos, dirs)
+	if not self.force_to_use_tubes then
+		update5(self, pos, dirs)
+	end
 end
 
 -- To be called after a tube/primary node is removed.

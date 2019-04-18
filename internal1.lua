@@ -96,7 +96,7 @@ end
 function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
 	local _, node = self:get_node(pos1)
 	if self.secondary_node_names[node.name] then
-		if minetest.registered_nodes[node.name].tubelib2_on_update then
+		if (minetest.registered_nodes[node.name] or {}).tubelib2_on_update then
 			minetest.registered_nodes[node.name].tubelib2_on_update(node, pos1, dir1, pos2, Turn180Deg[dir2])			
 		elseif self.clbk_update_secondary_node then
 			self.clbk_update_secondary_node(node, pos1, dir1, pos2, Turn180Deg[dir2])
@@ -219,7 +219,6 @@ function Tube:replace_nodes(pos1, pos2, dir1, dir2)
 	self.clbk_after_place_tube(self:get_tube_data(pos2, dir1, dir2, 1))
 end	
 
-
 function Tube:switch_nodes(pos, dir, state)
 	pos = get_pos(pos, dir)
 	local old_dir = dir
@@ -228,7 +227,6 @@ function Tube:switch_nodes(pos, dir, state)
 		if param2 then
 			local dir1, dir2, num_conn = self:decode_param2(pos, param2)
 			self.clbk_after_place_tube(self:get_tube_data(pos, dir1, dir2, num_conn, state))
-			print(S(pos), param2, dir1, dir2, num_conn)
 			if dir1 == Turn180Deg[old_dir] then
 				pos = get_pos(pos, dir2)
 				old_dir = dir2

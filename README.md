@@ -73,3 +73,4 @@ Textures: CC0
 - 2019-02-09  v0.9  * storage.lua added, code partly restructured
 - 2019-02-17  v1.0  * released 
 - 2019-03-02  v1.1  * API function 'switch_tube_line' added, secondary node placement bugfix 
+- 2019-04-18  v1.2  * 'force_to_use_tubes' added

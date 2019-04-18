@@ -23,15 +23,15 @@ local function update_mod_storage()
 	for k,v in pairs(MemStore) do
 		if v.used then
 			v.used = false
-			v.best_before = gametime + 10
+			v.best_before = gametime + (60 * 30)  -- 30 min
 			storage:set_string(k, minetest.serialize(v))
 		elseif v.best_before < gametime then
 			storage:set_string(k, minetest.serialize(v))
 			MemStore[k] = nil  -- remove from memory
 		end
 	end	
-	-- run every minute
-	minetest.after(60, update_mod_storage)
+	-- run every 10 minutes
+	minetest.after(600, update_mod_storage)
 end
 
 minetest.register_on_shutdown(function()
@@ -40,7 +40,7 @@ minetest.register_on_shutdown(function()
 	end	
 end)
 
-minetest.after(60, update_mod_storage)
+minetest.after(600, update_mod_storage)
 
 
 --
