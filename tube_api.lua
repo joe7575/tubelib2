@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 1.2
+tubelib2.version = 1.3
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -248,6 +248,17 @@ function Tube:get_connected_node_pos(pos, dir)
 	self:add_to_cache(spos, Turn180Deg[fdir], pos, dir)
 	return spos, fdir
 end
+
+-- Check if node at given position is a tubelib2 compatible node,
+-- able to receive and/or deliver items.
+-- If dir == nil then node_pos = pos 
+-- Function returns the result (true/false), new pos, and the node
+function Tube:compatible_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	return self.secondary_node_names[node.name], npos, node
+end
+
 
 -- To be called from a repair tool in the case of a "WorldEdit" or with
 -- legacy nodes corrupted tube line.
