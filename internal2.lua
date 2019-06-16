@@ -63,22 +63,11 @@ local Dir6dToVector = {[0] =
 	{x=0,  y=1,  z=0},
 }
 
-local VectorToDir6d = {
-	[{x=0,  y=0,  z=1}] = 1,
-	[{x=1,  y=0,  z=0}] = 2,
-	[{x=0,  y=0, z=-1}] = 3,
-	[{x=-1, y=0,  z=0}] = 4,
-	[{x=0,  y=-1, z=0}] = 5,
-	[{x=0,  y=1,  z=0}] = 6,
-}
-
-
 tubelib2.Tube = Tube
 tubelib2.Turn180Deg = Turn180Deg
 tubelib2.DirToParam2 = DirToParam2
 tubelib2.Param2ToDir = Param2ToDir
 tubelib2.Dir6dToVector = Dir6dToVector
-tubelib2.VectorToDir6d = VectorToDir6d
 
 
 --

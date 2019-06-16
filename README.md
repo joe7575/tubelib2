@@ -75,3 +75,4 @@ Textures: CC0
 - 2019-03-02  v1.1  * API function 'switch_tube_line' added, secondary node placement bugfix 
 - 2019-04-18  v1.2  * 'force_to_use_tubes' added
 - 2019-05-01  v1.3  * API function 'compatible_node' added
+- 2019-05-09  v1.4  * Attribute 'tube_type' added

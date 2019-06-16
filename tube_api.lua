@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 1.3
+tubelib2.version = 1.4
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -148,6 +148,7 @@ function Tube:new(attr)
 		show_infotext = attr.show_infotext or false,
 		force_to_use_tubes = attr.force_to_use_tubes or false, 
 		clbk_after_place_tube = attr.after_place_tube,
+		tube_type = attr.tube_type or "unknown",
 		pairingList = {}, -- teleporting nodes
 		connCache = {}, -- connection cache {pos1 = {dir1 = {pos2 = pos2, dir2 = dir2},...}
 	}
