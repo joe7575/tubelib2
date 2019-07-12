@@ -116,7 +116,7 @@ end
 local function update4(self, pos, dirs)
 	dirs = dirs or self.dirs_to_check
 	for _,dir in ipairs(dirs) do
-		local npos = self:secondary_node(pos, dir)
+		local _,npos = self:get_secondary_node(pos, dir)
 		if npos then
 			self:update_secondary_node(npos, Turn180Deg[dir], pos, dir)
 			self:update_secondary_node(pos, dir, npos, Turn180Deg[dir])
@@ -127,7 +127,7 @@ end
 local function update5(self, pos, dirs)
 	dirs = dirs or self.dirs_to_check
 	for _,dir in ipairs(dirs) do
-		local npos = self:secondary_node(pos, dir)
+		local _,npos = self:get_secondary_node(pos, dir)
 		if npos then
 			self:update_secondary_node(npos, Turn180Deg[dir])
 			self:update_secondary_node(pos, dir)

@@ -40,7 +40,7 @@ Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)
 	local sdir = tubelib2.dir_to_string(out_dir)
 	if not peer_pos then
 		print(S(pos).." to the "..sdir..": Not connected")
-	elseif Tube:secondary_node(peer_pos) then
+	elseif Tube:is_secondary_node(peer_pos) then
 		local node = minetest.get_node(peer_pos)
 		print(S(pos).." to the "..sdir..": Connected with "..node.name.." at "..S(peer_pos).."/"..peer_in_dir)
 	else

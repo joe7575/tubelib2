@@ -76,3 +76,4 @@ Textures: CC0
 - 2019-04-18  v1.2  * 'force_to_use_tubes' added
 - 2019-05-01  v1.3  * API function 'compatible_node' added
 - 2019-05-09  v1.4  * Attribute 'tube_type' added
+- 2019-07-12  v1.5  * internal handling of secondary nodes changed

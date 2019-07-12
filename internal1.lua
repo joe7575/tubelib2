@@ -94,8 +94,8 @@ end
 
 -- pos/dir are the pos of the secondary nodes pointing to the head tube nodes.
 function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
-	local _, node = self:get_node(pos1)
-	if self.secondary_node_names[node.name] then
+	local node,_ = self:get_secondary_node(pos1)
+	if node then
 		if (minetest.registered_nodes[node.name] or {}).tubelib2_on_update then
 			minetest.registered_nodes[node.name].tubelib2_on_update(node, pos1, dir1, pos2, Turn180Deg[dir2])			
 		elseif self.clbk_update_secondary_node then

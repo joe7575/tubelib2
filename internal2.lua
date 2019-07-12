@@ -112,20 +112,29 @@ function Tube:is_primary_node(pos, dir)
 	return self.primary_node_names[node.name]
 end
 
--- Check if node at given position is a secondary node
+-- Get secondary node at given position
 -- If dir == nil then node_pos = pos 
--- Function returns the new pos or nil
-function Tube:secondary_node(pos, dir)
+-- Function returns node and new_pos or nil
+function Tube:get_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
 	if self.secondary_node_names[node.name] then
-		return npos
+		return node, npos
 	end
+end
+
+-- Check if node at given position is a secondary node
+-- If dir == nil then node_pos = pos 
+-- Function returns true/false
+function Tube:is_secondary_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	return self.secondary_node_names[node.name]
 end
 
 -- Check if node has a connection on the given dir
 function Tube:connected(pos, dir)
-	return self:is_primary_node(pos, dir) or self:secondary_node(pos, dir)
+	return self:is_primary_node(pos, dir) or self:is_secondary_node(pos, dir)
 end
 
 function Tube:get_next_tube(pos, dir)
@@ -252,7 +261,7 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	-- Check for secondary nodes (chests and so on)
 	for dir = 1,6 do
 		if allowed[dir] then
-			local npos = self:secondary_node(pos, dir)
+			local _,npos = self:get_secondary_node(pos, dir)
 			if npos then 
 				if preferred_pos and vector.equals(npos, preferred_pos) then
 					preferred_pos = nil
