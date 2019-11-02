@@ -96,8 +96,11 @@ end
 function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
 	local node,_ = self:get_secondary_node(pos1)
 	if node then
-		if (minetest.registered_nodes[node.name] or {}).tubelib2_on_update then
-			minetest.registered_nodes[node.name].tubelib2_on_update(node, pos1, dir1, pos2, Turn180Deg[dir2])			
+		local ndef = minetest.registered_nodes[node.name] or {}
+		if ndef.tubelib2_on_update2 then
+			ndef.tubelib2_on_update2(pos1, dir1, self, node)
+		elseif ndef.tubelib2_on_update then
+			ndef.tubelib2_on_update(node, pos1, dir1, pos2, Turn180Deg[dir2])
 		elseif self.clbk_update_secondary_node then
 			self.clbk_update_secondary_node(node, pos1, dir1, pos2, Turn180Deg[dir2])
 		end

@@ -70,6 +70,17 @@ local function unlock(pos)
 	return block, node_key
 end
 
+local function keys_to_pos(block_key, node_key)
+	local f = math.floor
+	block_key = tonumber(block_key) or 0
+	node_key = tonumber(node_key) or 0
+	local x = ((f(block_key % 0x1000) * 0x10) - 32768) + (node_key % 0x10)
+	block_key, node_key = f(block_key / 0x1000), f(node_key / 0x10)
+	local y = ((f(block_key % 0x1000) * 0x10) - 32768) + (node_key % 0x10)
+	block_key, node_key = f(block_key / 0x1000), f(node_key / 0x10)
+	local z = ((f(block_key % 0x1000) * 0x10) - 32768) + (node_key % 0x10)
+	return {x = x, y = y, z = z}
+end
 
 -------------------------------------------------------------------------------
 -- API functions for a node related and high efficient storage table
@@ -99,3 +110,18 @@ function tubelib2.get_mem_data(pos, key, default)
 	return tubelib2.get_mem(pos)[key] or default
 end
 
+function tubelib2.walk_over_all(clbk)
+	local data = storage:to_table()
+	for block_key,sblock in pairs(data.fields) do
+		local block = minetest.deserialize(sblock)
+		for node_key,mem in pairs(block) do
+			if mem then
+				if node_key ~= "used" and node_key ~= "best_before" then
+					local pos = keys_to_pos(block_key, node_key)
+					local node = techage.get_node_lvm(pos)
+					clbk(pos, node, mem)
+				end
+			end
+		end
+	end
+end
