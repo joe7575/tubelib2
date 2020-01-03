@@ -3,7 +3,7 @@
 	Tube Library 2
 	==============
 
-	Copyright (C) 2018 Joachim Stolberg
+	Copyright (C) 2018-2020 Joachim Stolberg
 
 	LGPLv2.1+
 	See LICENSE.txt for more information
@@ -101,7 +101,8 @@ function Tube:update_secondary_node(pos1, dir1, pos2, dir2)
 			ndef.tubelib2_on_update2(pos1, dir1, self, node)
 		elseif ndef.tubelib2_on_update then
 			ndef.tubelib2_on_update(node, pos1, dir1, pos2, Turn180Deg[dir2])
-		elseif self.clbk_update_secondary_node then
+		end
+		if self.clbk_update_secondary_node then
 			self.clbk_update_secondary_node(node, pos1, dir1, pos2, Turn180Deg[dir2])
 		end
 	end

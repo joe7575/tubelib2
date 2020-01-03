@@ -3,7 +3,7 @@
 	Tube Library 2
 	==============
 
-	Copyright (C) 2018 Joachim Stolberg
+	Copyright (C) 2018-2020 Joachim Stolberg
 
 	LGPLv2.1+
 	See LICENSE.txt for more information
@@ -389,9 +389,6 @@ function Tube:walk_tube_line(pos, dir)
 			end
 			pos, dir = new_pos, new_dir
 			cnt = cnt + 1
-		end
-		if cnt > self.max_tube_length then
-			return
 		end
 		if cnt > 0 then
 			return pos, dir, cnt

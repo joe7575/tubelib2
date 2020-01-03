@@ -55,7 +55,7 @@ optional: intllib
 
 
 # License
-Copyright (C) 2017-2019 Joachim Stolberg  
+Copyright (C) 2017-2020 Joachim Stolberg  
 Code: Licensed under the GNU LGPL version 2.1 or later.
       See LICENSE.txt and http://www.gnu.org/licenses/lgpl-2.1.txt  
 Textures: CC0
@@ -78,5 +78,6 @@ Textures: CC0
 - 2019-05-09  v1.4  * Attribute 'tube_type' added
 - 2019-07-12  v1.5  * internal handling of secondary nodes changed
 - 2019-10-25  v1.6  * callback 'tubelib2_on_update2' added
+- 2020-01-03  v1.7  * max_tube_length bugfix
 
 
