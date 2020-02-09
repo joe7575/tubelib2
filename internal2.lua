@@ -123,6 +123,17 @@ function Tube:get_secondary_node(pos, dir)
 	end
 end
 
+-- Get special registered nodes at given position
+-- If dir == nil then node_pos = pos 
+-- Function returns node and new_pos or nil
+function Tube:get_special_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	if self.special_node_names[node.name] then
+		return node, npos
+	end
+end
+
 -- Check if node at given position is a secondary node
 -- If dir == nil then node_pos = pos 
 -- Function returns true/false
@@ -130,6 +141,15 @@ function Tube:is_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
 	return self.secondary_node_names[node.name]
+end
+
+-- Check if node at given position is a special node
+-- If dir == nil then node_pos = pos 
+-- Function returns true/false
+function Tube:is_special_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	return self.special_node_names[node.name]
 end
 
 -- Check if node has a connection on the given dir

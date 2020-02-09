@@ -79,5 +79,6 @@ Textures: CC0
 - 2019-07-12  v1.5  * internal handling of secondary nodes changed
 - 2019-10-25  v1.6  * callback 'tubelib2_on_update2' added
 - 2020-01-03  v1.7  * max_tube_length bugfix
+- 2020-02-02  v1.8  * 'special nodes' as alternative to 'secondary nodes' introduced
 
 

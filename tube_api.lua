@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 1.7
+tubelib2.version = 1.8
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -113,10 +113,17 @@ local function update3(self, pos, dir1, dir2)
 	end
 end
 
-local function update4(self, pos, dirs)
+local function update_secondary_nodes_after_node_placed(self, pos, dirs)
 	dirs = dirs or self.dirs_to_check
+	-- check surrounding for secondary nodes
 	for _,dir in ipairs(dirs) do
-		local _,npos = self:get_secondary_node(pos, dir)
+		local tmp, npos
+		if self.force_to_use_tubes then
+			tmp, npos = self:get_special_node(pos, dir)
+			print("tmp, npos", tmp, S(npos))
+		else
+			tmp, npos = self:get_secondary_node(pos, dir) 
+		end
 		if npos then
 			self:update_secondary_node(npos, Turn180Deg[dir], pos, dir)
 			self:update_secondary_node(pos, dir, npos, Turn180Deg[dir])
@@ -124,10 +131,16 @@ local function update4(self, pos, dirs)
 	end
 end
 
-local function update5(self, pos, dirs)
+local function update_secondary_nodes_after_node_dug(self, pos, dirs)
 	dirs = dirs or self.dirs_to_check
+	-- check surrounding for secondary nodes
 	for _,dir in ipairs(dirs) do
-		local _,npos = self:get_secondary_node(pos, dir)
+		local tmp, npos
+		if self.force_to_use_tubes then
+			tmp, npos = self:get_special_node(pos, dir)
+		else
+			tmp, npos = self:get_secondary_node(pos, dir) 
+		end
 		if npos then
 			self:update_secondary_node(npos, Turn180Deg[dir])
 			self:update_secondary_node(pos, dir)
@@ -151,6 +164,7 @@ function Tube:new(attr)
 		tube_type = attr.tube_type or "unknown",
 		pairingList = {}, -- teleporting nodes
 		connCache = {}, -- connection cache {pos1 = {dir1 = {pos2 = pos2, dir2 = dir2},...}
+		special_node_names = {}, -- use add_special_node_names() to register nodes
 	}
 	o.valid_dirs = Tbl(o.dirs_to_check)
 	setmetatable(o, self)
@@ -162,6 +176,14 @@ end
 function Tube:add_secondary_node_names(names)
 	for _,name in ipairs(names) do
 		self.secondary_node_names[name] = true
+	end
+end
+
+-- Register further nodes, which should be updated after
+-- a node/tube is placed/dug
+function Tube:add_special_node_names(names)
+	for _,name in ipairs(names) do
+		self.special_node_names[name] = true
 	end
 end
 
@@ -185,9 +207,7 @@ function Tube:after_place_node(pos, dirs)
 			update1(self, pos, dir)
 		end
 	end
-	if not self.force_to_use_tubes then
-		update4(self, pos, dirs)
-	end
+	update_secondary_nodes_after_node_placed(self, pos, dirs)
 end
 
 -- To be called after a tube/primary node is placed.
@@ -208,9 +228,7 @@ function Tube:after_dig_node(pos, dirs)
 	for _,dir in ipairs(self:update_after_dig_node(pos, dirs)) do
 		update1(self, pos, dir)
 	end
-	if not self.force_to_use_tubes then
-		update5(self, pos, dirs)
-	end
+	update_secondary_nodes_after_node_dug(self, pos, dirs)
 end
 
 -- To be called after a tube/primary node is removed.
