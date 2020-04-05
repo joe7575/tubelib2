@@ -120,7 +120,6 @@ local function update_secondary_nodes_after_node_placed(self, pos, dirs)
 		local tmp, npos
 		if self.force_to_use_tubes then
 			tmp, npos = self:get_special_node(pos, dir)
-			print("tmp, npos", tmp, S(npos))
 		else
 			tmp, npos = self:get_secondary_node(pos, dir) 
 		end
@@ -237,17 +236,19 @@ function Tube:after_dig_tube(pos, oldnode)
 	-- s..secondary, f..far, n..near, x..node to be removed
 	
 	-- update tubes
-	local dir1, dir2 = self:update_after_dig_tube(pos, oldnode.param2)
-	if dir1 then update1(self, pos, dir1) end
-	if dir2 then update1(self, pos, dir2) end
-	
-	-- Update secondary nodes, if right beside
-	dir1, dir2 = self:decode_param2(pos, oldnode.param2)
-	local npos1,ndir1 = get_pos(pos, dir1),Turn180Deg[dir1]
-	local npos2,ndir2 = get_pos(pos, dir2),Turn180Deg[dir2]
-	self:del_from_cache(npos1,ndir1)
-	self:update_secondary_node(npos1,ndir1)
-	self:update_secondary_node(npos2,ndir2)
+	if oldnode and oldnode.param2 then
+		local dir1, dir2 = self:update_after_dig_tube(pos, oldnode.param2)
+		if dir1 then update1(self, pos, dir1) end
+		if dir2 then update1(self, pos, dir2) end
+		
+		-- Update secondary nodes, if right beside
+		dir1, dir2 = self:decode_param2(pos, oldnode.param2)
+		local npos1,ndir1 = get_pos(pos, dir1),Turn180Deg[dir1]
+		local npos2,ndir2 = get_pos(pos, dir2),Turn180Deg[dir2]
+		self:del_from_cache(npos1,ndir1)
+		self:update_secondary_node(npos1,ndir1)
+		self:update_secondary_node(npos2,ndir2)
+	end
 end
 
 
