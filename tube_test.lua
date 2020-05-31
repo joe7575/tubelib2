@@ -45,6 +45,9 @@ Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)
 		print(S(pos).." to the "..sdir..": Connected with "..node.name.." at "..S(peer_pos).."/"..peer_in_dir)
 	else
 		print(S(pos).." to the "..sdir..": Connected with "..S(peer_pos).."/"..peer_in_dir)
+		for i, pos, node in Tube:get_tube_line(pos, out_dir) do
+			print("walk", S(pos), node.name)
+		end
 	end
 end)
 

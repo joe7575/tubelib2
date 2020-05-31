@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 1.8
+tubelib2.version = 1.9
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
@@ -47,6 +47,24 @@ local function get_pos(pos, dir)
 	return vector.add(pos, Dir6dToVector[dir or 0])
 end
 tubelib2.get_pos = get_pos
+
+function tubelib2.get_node_lvm(pos)
+	local node = minetest.get_node_or_nil(pos)
+	if node then
+		return node
+	end
+	local vm = minetest.get_voxel_manip()
+	local MinEdge, MaxEdge = vm:read_from_map(pos, pos)
+	local data = vm:get_data()
+	local param2_data = vm:get_param2_data()
+	local area = VoxelArea:new({MinEdge = MinEdge, MaxEdge = MaxEdge})
+	local idx = area:index(pos.x, pos.y, pos.z)
+	node = {
+		name = minetest.get_name_from_content_id(data[idx]),
+		param2 = param2_data[idx]
+	}
+	return node
+end
 
 local function update1(self, pos, dir)
 	local fpos,fdir = self:walk_tube_line(pos, dir)
@@ -381,3 +399,21 @@ end
 function Tube:switch_tube_line(pos, dir, state)
 	self:switch_nodes(pos, dir, state)
 end
+
+-- Generator function to iterate over a tube line
+-- Returns for each tube: i , pos, node
+function Tube:get_tube_line(pos, dir)
+	if pos and dir then
+		self.ref = {pos = pos, dir = dir}
+		return function(self, i)
+			if i < self.max_tube_length then
+				local new_pos, new_dir, num = self:get_next_tube(self.ref.pos, self.ref.dir)
+				if new_pos then
+					self.ref.pos, self.ref.dir = new_pos, new_dir
+					i = i + 1
+					return i, self.ref.pos, self.node
+				end
+			end
+		end, self, 0
+	end
+end	

@@ -42,6 +42,25 @@ end)
 
 minetest.after(600, update_mod_storage)
 
+local function empty_block(block)
+	local empty = true
+	local tbl = minetest.deserialize(block)
+	for k,v in pairs(tbl) do
+		if k ~= "used" and k ~= "best_before" then
+			empty = false
+		end
+	end
+	return empty
+end
+	
+minetest.after(1, function()
+	local tbl = storage:to_table()
+	for k,v in pairs(tbl.fields) do
+		if empty_block(v) then
+			storage:set_string(k, "")
+		end
+	end	
+end)
 
 --
 -- Local helper functions
@@ -118,7 +137,7 @@ function tubelib2.walk_over_all(clbk)
 			if mem then
 				if node_key ~= "used" and node_key ~= "best_before" then
 					local pos = keys_to_pos(block_key, node_key)
-					local node = techage.get_node_lvm(pos)
+					local node = tubelib2.get_node_lvm(pos)
 					clbk(pos, node, mem)
 				end
 			end

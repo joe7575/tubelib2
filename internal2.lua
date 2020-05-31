@@ -97,9 +97,9 @@ end
 -- Function returns param2, new_pos or nil
 function Tube:get_primary_node_param2(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
-	local node = self:get_node_lvm(npos)
-	if self.primary_node_names[node.name] then
-		return node.param2, npos
+	self.node = self:get_node_lvm(npos)
+	if self.primary_node_names[self.node.name] then
+		return self.node.param2, npos
 	end
 end
 
