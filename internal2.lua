@@ -121,7 +121,12 @@ function Tube:get_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
 	if self.secondary_node_names[node.name] then
-		return node, npos
+		local valid_dir_string = minetest.get_meta(npos):get_string('valid_dirs')
+		local valid_dirs = self.valid_dirs
+		if valid_dir_string and valid_dir_string ~= "" then
+			valid_dirs = minetest.deserialize(valid_dir_string)
+		end
+		return node, npos, valid_dirs[Turn180Deg[dir]] or false
 	end
 end
 
@@ -286,13 +291,17 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	-- Check for secondary nodes (chests and so on)
 	for dir = 1,6 do
 		if allowed[dir] then
-			local _,npos = self:get_secondary_node(pos, dir)
-			if npos then 
-				if preferred_pos and vector.equals(npos, preferred_pos) then
-					preferred_pos = nil
-					table.insert(tbl, 2, dir)
+			local _,npos,allow = self:get_secondary_node(pos, dir)
+			if npos then
+				if not allow then
+					allowed[dir] = false
 				else
-					table.insert(tbl, dir)
+					if preferred_pos and vector.equals(npos, preferred_pos) then
+						preferred_pos = nil
+						table.insert(tbl, 2, dir)
+					else
+						table.insert(tbl, dir)
+					end
 				end
 			end
 		end
