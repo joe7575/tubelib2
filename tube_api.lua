@@ -161,6 +161,8 @@ local function update_secondary_nodes_after_node_dug(self, pos, dirs)
 			tmp, npos = self:get_secondary_node(pos, dir) 
 		end
 		if npos then
+			self:del_from_cache(npos, Turn180Deg[dir])
+			self:del_from_cache(pos, dir)
 			self:update_secondary_node(npos, Turn180Deg[dir])
 			self:update_secondary_node(pos, dir)
 		end
