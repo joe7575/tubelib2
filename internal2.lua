@@ -121,12 +121,12 @@ function Tube:get_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
 	if self.secondary_node_names[node.name] then
-		local valid_dir_string = minetest.get_meta(npos):get_string('valid_dirs')
-		local valid_dirs = self.valid_dirs
-		if valid_dir_string and valid_dir_string ~= "" then
-			valid_dirs = minetest.deserialize(valid_dir_string)
+		local is_valid_dir = nil
+		if dir ~= nil then
+			local side = tubelib2.dir_to_side(Turn180Deg[dir], node.param2)
+			is_valid_dir = self.secondary_node_names[node.name][side] or false
 		end
-		return node, npos, valid_dirs[Turn180Deg[dir]] or false
+		return node, npos, is_valid_dir
 	end
 end
 

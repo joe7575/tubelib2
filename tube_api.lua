@@ -23,11 +23,33 @@ local M = minetest.get_meta
 local MP = minetest.get_modpath("tubelib2")
 local I,_ = dofile(MP.."/intllib.lua")
 
+-- Cardinal directions, regardless of orientation
 local Dir2Str = {"north", "east", "south", "west", "down", "up"}
 
 function tubelib2.dir_to_string(dir)
 	return Dir2Str[dir]
 end
+
+-- Relative directions, dependant on orientation (param2)
+local DirToSide = {"B", "R", "F", "L", "D", "U"}
+
+function tubelib2.dir_to_side(dir, param2)
+	if dir < 5 then
+		dir = (((dir - 1) - (param2 % 4)) % 4) + 1
+	end
+	return DirToSide[dir]
+end
+
+local SideToDir = {B=1, R=2, F=3, L=4, D=5, U=6}
+
+function tubelib2.side_to_dir(side, param2)
+	local dir = SideToDir[side]
+	if dir < 5 then
+		dir = (((dir - 1) + (param2 % 4)) % 4) + 1
+	end
+	return dir
+end
+
 
 local function Tbl(list)
 	local tbl = {}
@@ -193,10 +215,19 @@ function Tube:new(attr)
 	return o
 end
 
+
+
 -- Register (foreign) tubelib compatible nodes.
-function Tube:add_secondary_node_names(names)
+local valid_sides_default = {B=true, R=true, F=true, L=true, D=true, U=true}
+function Tube:add_secondary_node_names(names, valid_sides)
+	local valid_sides_complete = valid_sides or {}
+	for side, defaultValue in pairs(valid_sides_default) do
+		if valid_sides_complete[side] == nil then
+			valid_sides_complete[side] = defaultValue
+		end
+	end
 	for _,name in ipairs(names) do
-		self.secondary_node_names[name] = true
+		self.secondary_node_names[name] = valid_sides_complete
 	end
 end
 
