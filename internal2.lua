@@ -293,7 +293,7 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 		if allowed[dir] then
 			local _,npos,allow = self:get_secondary_node(pos, dir)
 			if npos then
-				if not allow then
+				if allow == false then
 					allowed[dir] = false
 				else
 					if preferred_pos and vector.equals(npos, preferred_pos) then
@@ -416,6 +416,10 @@ function Tube:walk_tube_line(pos, dir)
 	local cnt = 0
 	if dir then
 		while cnt <= self.max_tube_length do
+			local secondary,_,valid = self:get_secondary_node(pos, dir)
+			if secondary and valid == false then
+				break
+			end
 			local new_pos, new_dir, num = self:get_next_tube(pos, dir)
 			if not new_pos then	break end
 			if cnt > 0 and num ~= 2 and self:is_primary_node(new_pos, new_dir) then
