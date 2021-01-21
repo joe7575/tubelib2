@@ -81,12 +81,11 @@ function tubelib2.get_node_lvm(pos)
 	local param2_data = vm:get_param2_data()
 	local area = VoxelArea:new({MinEdge = MinEdge, MaxEdge = MaxEdge})
 	local idx = area:indexp(pos)
-	if data[idx] and param2_data[idx] then
-		return {
-			name = minetest.get_name_from_content_id(data[idx]),
-			param2 = param2_data[idx]
-		}
-	end
+	node = {
+		name = minetest.get_name_from_content_id(data[idx]),
+		param2 = param2_data[idx]
+	}
+	return node
 	return {name="ignore", param2=0}
 end
 
