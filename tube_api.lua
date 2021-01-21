@@ -231,6 +231,23 @@ function Tube:add_secondary_node_names(names, valid_sides)
 	end
 end
 
+-- Checks the list of secondary nodes to see if a
+-- given side can be connected to
+function Tube:is_valid_side(name, side)
+	if self.secondary_node_names[name] then
+		return self.secondary_node_names[name][side] or false
+	end
+end
+
+-- Checks is a particular node can be connected to
+-- from a particular direction, taing into account orientation
+function Tube:is_valid_dir(node, dir)
+	if dir ~= nil then
+		local side = tubelib2.dir_to_side(dir, node.param2)
+		return self:is_valid_side(node.name, side)
+	end
+end
+
 -- Register further nodes, which should be updated after
 -- a node/tube is placed/dug
 function Tube:add_special_node_names(names)

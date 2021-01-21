@@ -121,12 +121,7 @@ function Tube:get_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
 	if self.secondary_node_names[node.name] then
-		local is_valid_dir = nil
-		if dir ~= nil then
-			local side = tubelib2.dir_to_side(Turn180Deg[dir], node.param2)
-			is_valid_dir = self.secondary_node_names[node.name][side] or false
-		end
-		return node, npos, is_valid_dir
+		return node, npos
 	end
 end
 
@@ -147,7 +142,7 @@ end
 function Tube:is_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
-	return self.secondary_node_names[node.name]
+	return self.secondary_node_names[node.name] ~= nil
 end
 
 -- Check if node at given position is a special node
@@ -291,9 +286,9 @@ function Tube:determine_tube_dirs(pos, preferred_pos, fdir)
 	-- Check for secondary nodes (chests and so on)
 	for dir = 1,6 do
 		if allowed[dir] then
-			local _,npos,allow = self:get_secondary_node(pos, dir)
+			local node,npos = self:get_secondary_node(pos, dir)
 			if npos then
-				if allow == false then
+				if self:is_valid_dir(node, Turn180Deg[dir]) == false then
 					allowed[dir] = false
 				else
 					if preferred_pos and vector.equals(npos, preferred_pos) then
@@ -416,8 +411,8 @@ function Tube:walk_tube_line(pos, dir)
 	local cnt = 0
 	if dir then
 		while cnt <= self.max_tube_length do
-			local secondary,_,valid = self:get_secondary_node(pos, dir)
-			if secondary and valid == false then
+			local secondary = self:get_secondary_node(pos, dir)
+			if secondary and self:is_valid_dir(secondary, Turn180Deg[dir]) == false then
 				break
 			end
 			local new_pos, new_dir, num = self:get_next_tube(pos, dir)
