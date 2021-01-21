@@ -414,8 +414,12 @@ function Tube:stop_pairing(pos, oldmetadata, sFormspec)
 		if oldmetadata.fields.tele_pos then
 			local tele_pos = minetest.string_to_pos(oldmetadata.fields.tele_pos)
 			local peer_meta = M(tele_pos)
+			local tube_dir = tonumber(oldmetadata.fields.tube_dir or 0)
+			self:del_from_cache(get_pos(pos, tube_dir), Turn180Deg[tube_dir])
 			if peer_meta then
-				self:after_place_node(tele_pos, {peer_meta:get_int("tube_dir")})
+				local peer_dir = tonumber(peer_meta:get_int("tube_dir") or 0)
+				self:del_from_cache(get_pos(tele_pos, peer_dir), Turn180Deg[peer_dir])
+				self:after_place_node(tele_pos, {peer_dir})
 				peer_meta:set_string("channel", nil)
 				peer_meta:set_string("tele_pos", nil)
 				peer_meta:set_string("formspec", sFormspec)
