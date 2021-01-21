@@ -86,7 +86,6 @@ function tubelib2.get_node_lvm(pos)
 		param2 = param2_data[idx]
 	}
 	return node
-	return {name="ignore", param2=0}
 end
 
 local function update1(self, pos, dir)
