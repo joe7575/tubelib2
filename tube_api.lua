@@ -215,8 +215,6 @@ function Tube:new(attr)
 	return o
 end
 
-
-
 -- Register (foreign) tubelib compatible nodes.
 local valid_sides_default = {B=true, R=true, F=true, L=true, D=true, U=true}
 function Tube:add_secondary_node_names(names, valid_sides)
@@ -239,8 +237,8 @@ function Tube:is_valid_side(name, side)
 	end
 end
 
--- Checks is a particular node can be connected to
--- from a particular direction, taing into account orientation
+-- Checks if a particular node can be connected to
+-- from a particular direction, taking into account orientation
 function Tube:is_valid_dir(node, dir)
 	if dir ~= nil then
 		local side = tubelib2.dir_to_side(dir, node.param2)
