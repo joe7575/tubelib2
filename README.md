@@ -55,7 +55,7 @@ optional: intllib
 
 
 # License
-Copyright (C) 2017-2021 Joachim Stolberg
+Copyright (C) 2017-2020 Joachim Stolberg  
 Code: Licensed under the GNU LGPL version 2.1 or later.
       See LICENSE.txt and http://www.gnu.org/licenses/lgpl-2.1.txt  
 Textures: CC0
@@ -81,6 +81,5 @@ Textures: CC0
 - 2020-01-03  v1.7  * max_tube_length bugfix
 - 2020-02-02  v1.8  * 'special nodes' as alternative to 'secondary nodes' introduced
 - 2020-05-31  v1.9  * Generator function 'get_tube_line' added, storage improvements
-- 2021-01-17  v2.0  * Update cache on node removal (#7) and refuse to connect with faces of a node which are not marked valid (#3)
 
 

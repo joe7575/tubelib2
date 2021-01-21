@@ -90,7 +90,6 @@ function Tube:get_node_lvm(pos)
 		param2 = param2_data[idx]
 	}
 	return node
-	return {name="ignore", param2=0}
 end
 
 -- Read param2 from a primary node at the given position.
