@@ -336,6 +336,10 @@ function Tube:add_tube_dir(pos, dir)
 	if param2 then
 		local d1, d2, num = self:decode_param2(npos, param2)
 		if not num then return end
+		-- if invalid face, do nothing
+		local node = self:get_node_lvm(pos)
+		local valid = self:is_valid_dir(node, dir)
+		if valid == false then return end
 		-- not already connected to the new tube?
 		dir = Turn180Deg[dir]
 		if d1 ~= dir and dir ~= d2 then
