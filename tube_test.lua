@@ -19,6 +19,44 @@ local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
 local P = minetest.string_to_pos
 local M = minetest.get_meta
 
+
+-- Marker entities for debugging purposes
+local function debug_info(pos, text)
+	local marker = minetest.add_entity(pos, "tubelib2:marker_cube")
+	if marker ~= nil then
+		if text == "add" then
+			marker:set_nametag_attributes({color = "#FF0000", text = "add__________"})
+		elseif text == "del" then
+			marker:set_nametag_attributes({color = "#00FF00", text = "_____del_____"})
+		elseif text == "noc" then
+			marker:set_nametag_attributes({color = "#0000FF", text = "__________noc"})
+		end
+		minetest.after(6, marker.remove, marker)
+	end
+end
+
+minetest.register_entity(":tubelib2:marker_cube", {
+	initial_properties = {
+		visual = "cube",
+		textures = {
+			"tubelib2_marker_cube.png",
+			"tubelib2_marker_cube.png",
+			"tubelib2_marker_cube.png",
+			"tubelib2_marker_cube.png",
+			"tubelib2_marker_cube.png",
+			"tubelib2_marker_cube.png",
+		},
+		physical = false,
+		visual_size = {x = 1.1, y = 1.1},
+		collisionbox = {-0.55,-0.55,-0.55, 0.55,0.55,0.55},
+		glow = 8,
+	},
+	on_punch = function(self)
+		self.object:remove()
+	end,
+})
+
+
 -- Test tubes
 
 local Tube = tubelib2.Tube:new({
@@ -34,6 +72,7 @@ local Tube = tubelib2.Tube:new({
 	after_place_tube = function(pos, param2, tube_type, num_tubes, tbl)
 		minetest.swap_node(pos, {name = "tubelib2:tube"..tube_type, param2 = param2})
 	end,
+	debug_info = debug_info,
 })
 
 Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)

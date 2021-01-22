@@ -182,6 +182,7 @@ function Tube:new(attr)
 		pairingList = {}, -- teleporting nodes
 		connCache = {}, -- connection cache {pos1 = {dir1 = {pos2 = pos2, dir2 = dir2},...}
 		special_node_names = {}, -- use add_special_node_names() to register nodes
+		debug_info = attr.debug_info,  -- debug_info(pos, text) 
 	}
 	o.valid_dirs = Tbl(o.dirs_to_check)
 	setmetatable(o, self)
