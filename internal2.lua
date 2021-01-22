@@ -387,6 +387,10 @@ end
 function Tube:get_next_teleport_node(pos, dir)
 	if pos then
 		local npos = vector.add(pos, Dir6dToVector[dir or 0])
+		local node = self:get_node_lvm(npos)
+		if self:is_valid_dir(node, Turn180Deg[dir]) == false then
+			return
+		end
 		local meta = M(npos)
 		local s = meta:get_string("tele_pos")
 		if s ~= "" then
@@ -413,10 +417,6 @@ function Tube:walk_tube_line(pos, dir)
 	local cnt = 0
 	if dir then
 		while cnt <= self.max_tube_length do
-			local secondary = self:get_secondary_node(pos, dir)
-			if secondary and self:is_valid_dir(secondary, Turn180Deg[dir]) == false then
-				break
-			end
 			local new_pos, new_dir, num = self:get_next_tube(pos, dir)
 			if not new_pos then	break end
 			if cnt > 0 and num ~= 2 and self:is_primary_node(new_pos, new_dir) then

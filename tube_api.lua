@@ -239,7 +239,7 @@ end
 -- Checks if a particular node can be connected to
 -- from a particular direction, taking into account orientation
 function Tube:is_valid_dir(node, dir)
-	if dir ~= nil then
+	if node and dir ~= nil and self.secondary_node_names[node.name] then
 		local side = tubelib2.dir_to_side(dir, node.param2)
 		return self:is_valid_side(node.name, side)
 	end
