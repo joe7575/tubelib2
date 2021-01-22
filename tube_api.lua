@@ -230,8 +230,9 @@ end
 -- Checks the list of secondary nodes to see if a
 -- given side can be connected to
 function Tube:is_valid_side(name, side)
-	if self.secondary_node_names[name] then
-		return self.secondary_node_names[name][side] or false
+	local valid_sides = self.secondary_node_names[name]
+	if valid_sides then
+		return valid_sides[side] or false
 	end
 end
 
