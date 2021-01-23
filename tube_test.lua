@@ -73,6 +73,9 @@ local Tube = tubelib2.Tube:new({
 	--debug_info = debug_info,
 })
 
+Tube:set_valid_sides("tubelib2:source", {"F"})
+Tube:set_valid_sides("tubelib2:teleporter", {"F"})
+
 Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)
 	local sdir = tubelib2.dir_to_string(out_dir)
 	if not peer_pos then
