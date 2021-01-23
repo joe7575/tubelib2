@@ -3,7 +3,7 @@
 	Tube Library 2
 	==============
 
-	Copyright (C) 2018-2020 Joachim Stolberg
+	Copyright (C) 2018-2021 Joachim Stolberg
 
 	LGPLv2.1+
 	See LICENSE.txt for more information

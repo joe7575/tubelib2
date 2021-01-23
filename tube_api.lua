@@ -3,7 +3,7 @@
 	Tube Library 2
 	==============
 
-	Copyright (C) 2017-2020 Joachim Stolberg
+	Copyright (C) 2017-2021 Joachim Stolberg
 
 	LGPLv2.1+
 	See LICENSE.txt for more information
@@ -13,7 +13,7 @@
 ]]--
 
 -- Version for compatibility checks, see readme.md/history
-tubelib2.version = 1.9
+tubelib2.version = 2.0
 
 -- for lazy programmers
 local S = function(pos) if pos then return minetest.pos_to_string(pos) end end
