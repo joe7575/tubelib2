@@ -198,7 +198,7 @@ function Tube:new(attr)
 		dirs_to_check = attr.dirs_to_check or {1,2,3,4,5,6},
 		max_tube_length = attr.max_tube_length or 1000, 
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
-		secondary_node_names = Tbl(attr.secondary_node_names or {}),
+		secondary_node_names = {},
 		show_infotext = attr.show_infotext or false,
 		force_to_use_tubes = attr.force_to_use_tubes or false, 
 		clbk_after_place_tube = attr.after_place_tube,
@@ -210,20 +210,34 @@ function Tube:new(attr)
 	o.valid_dirs = Tbl(o.dirs_to_check)
 	setmetatable(o, self)
 	self.__index = self
+	if attr.secondary_node_names then
+		o:add_secondary_node_names(attr.secondary_node_names)
+	end
 	return o
 end
 
 -- Register (foreign) tubelib compatible nodes.
 local valid_sides_default = {B=true, R=true, F=true, L=true, D=true, U=true}
-function Tube:add_secondary_node_names(names, valid_sides)
+local function complete_valid_sides(valid_sides)
 	local valid_sides_complete = valid_sides or {}
 	for side, defaultValue in pairs(valid_sides_default) do
 		if valid_sides_complete[side] == nil then
 			valid_sides_complete[side] = defaultValue
 		end
 	end
+	return valid_sides_complete
+end
+
+function Tube:add_secondary_node_names(names, valid_sides)
+	local valid_sides_complete = complete_valid_sides(valid_sides)
 	for _,name in ipairs(names) do
 		self.secondary_node_names[name] = valid_sides_complete
+	end
+	for name,valid_sides in pairs(names) do
+		if type(name) == 'string' then
+			local valid_sides_complete = complete_valid_sides(valid_sides)
+			self.secondary_node_names[name] = valid_sides_complete
+		end
 	end
 end
 
