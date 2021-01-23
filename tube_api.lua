@@ -280,8 +280,8 @@ function Tube:set_invalid_sides(name, invalid_sides)
 	self.valid_node_contact_sides[name] = complete_valid_sides(invert_booleans(Tbl(invalid_sides)), existing_defaults)
 end
 
--- Checks the list of secondary nodes to see if a
--- given side can be connected to
+-- Checks the list of valid node connection sides to
+-- see if a given side can be connected to
 function Tube:is_valid_side(name, side)
 	local valid_sides = self.valid_node_contact_sides[name]
 	if valid_sides then
