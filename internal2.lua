@@ -140,7 +140,7 @@ end
 function Tube:is_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
-	return self.secondary_node_names[node.name] ~= nil
+	return self.secondary_node_names[node.name]
 end
 
 -- Check if node at given position is a special node
@@ -337,9 +337,7 @@ function Tube:add_tube_dir(pos, dir)
 		local d1, d2, num = self:decode_param2(npos, param2)
 		if not num then return end
 		-- if invalid face, do nothing
-		local node = self:get_node_lvm(pos)
-		local valid = self:is_valid_dir(node, dir)
-		if valid == false then return end
+		if self:is_valid_dir_pos(pos, dir) == false then return end
 		-- not already connected to the new tube?
 		dir = Turn180Deg[dir]
 		if d1 ~= dir and dir ~= d2 then
@@ -387,8 +385,7 @@ end
 function Tube:get_next_teleport_node(pos, dir)
 	if pos then
 		local npos = vector.add(pos, Dir6dToVector[dir or 0])
-		local node = self:get_node_lvm(npos)
-		if self:is_valid_dir(node, Turn180Deg[dir]) == false then
+		if self:is_valid_dir_pos(npos, Turn180Deg[dir]) == false then
 			return
 		end
 		local meta = M(npos)

@@ -198,7 +198,8 @@ function Tube:new(attr)
 		dirs_to_check = attr.dirs_to_check or {1,2,3,4,5,6},
 		max_tube_length = attr.max_tube_length or 1000, 
 		primary_node_names = Tbl(attr.primary_node_names or {}), 
-		secondary_node_names = {},
+		secondary_node_names = Tbl(attr.secondary_node_names or {}),
+		valid_node_contact_sides = {},
 		show_infotext = attr.show_infotext or false,
 		force_to_use_tubes = attr.force_to_use_tubes or false, 
 		clbk_after_place_tube = attr.after_place_tube,
@@ -210,41 +211,76 @@ function Tube:new(attr)
 	o.valid_dirs = Tbl(o.dirs_to_check)
 	setmetatable(o, self)
 	self.__index = self
-	if attr.secondary_node_names then
-		o:add_secondary_node_names(attr.secondary_node_names)
+	if attr.valid_node_contact_sides then
+		o:set_valid_sides_multiple(attr.valid_node_contact_sides)
 	end
 	return o
 end
 
 -- Register (foreign) tubelib compatible nodes.
-local valid_sides_default = {B=true, R=true, F=true, L=true, D=true, U=true}
-local function complete_valid_sides(valid_sides)
+function Tube:add_secondary_node_names(names)
+	for _,name in ipairs(names) do
+		self.secondary_node_names[name] = true
+	end
+end
+
+
+-- Defaults for valid sides configuration
+local function invert_booleans(tab)
+	local inversion = {}
+	for key, value in pairs(tab) do
+		inversion[key] = not value
+	end
+	return inversion
+end
+local valid_sides_default_true = {B=true, R=true, F=true, L=true, D=true, U=true}
+local valid_sides_default_false = invert_booleans(valid_sides_default_true)
+local function complete_valid_sides(valid_sides, existing_defaults)
 	local valid_sides_complete = valid_sides or {}
-	for side, defaultValue in pairs(valid_sides_default) do
+	for side, default_value in pairs(existing_defaults) do
 		if valid_sides_complete[side] == nil then
-			valid_sides_complete[side] = defaultValue
+			valid_sides_complete[side] = default_value
 		end
 	end
 	return valid_sides_complete
 end
 
-function Tube:add_secondary_node_names(names, valid_sides)
-	local valid_sides_complete = complete_valid_sides(valid_sides)
-	for _,name in ipairs(names) do
-		self.secondary_node_names[name] = valid_sides_complete
+-- Set sides which are valid
+-- with a table of name = valid_sides pairs
+function Tube:set_valid_sides_multiple(names)
+	for name, valid_sides in pairs(names) do
+		self:set_valid_sides(name, valid_sides)
 	end
-	for name,valid_sides in pairs(names) do
-		if type(name) == 'string' then
-			local valid_sides_complete = complete_valid_sides(valid_sides)
-			self.secondary_node_names[name] = valid_sides_complete
-		end
+end
+
+-- Set sides which are invalid
+-- with a table of name = valid_sides pairs
+function Tube:set_invalid_sides_multiple(names)
+	for name, invalid_sides in pairs(names) do
+		self:set_invalid_sides(name, invalid_sides)
 	end
+end
+
+-- Set sides which are valid
+-- will assume all sides not given are invalid
+-- Only sets new sides, existing sides will remain
+function Tube:set_valid_sides(name, valid_sides)
+	local existing_defaults = self.valid_node_contact_sides[name] or valid_sides_default_false
+	self.valid_node_contact_sides[name] = complete_valid_sides(Tbl(valid_sides), existing_defaults)
+end
+
+-- Set sides which are invalid
+-- will assume all sides not given are valid
+-- Only sets new sides, existing sides will remain
+function Tube:set_invalid_sides(name, invalid_sides)
+	local existing_defaults = self.valid_node_contact_sides[name] or valid_sides_default_true
+	self.valid_node_contact_sides[name] = complete_valid_sides(invert_booleans(Tbl(invalid_sides)), existing_defaults)
 end
 
 -- Checks the list of secondary nodes to see if a
 -- given side can be connected to
 function Tube:is_valid_side(name, side)
-	local valid_sides = self.secondary_node_names[name]
+	local valid_sides = self.valid_node_contact_sides[name]
 	if valid_sides then
 		return valid_sides[side] or false
 	end
@@ -253,10 +289,17 @@ end
 -- Checks if a particular node can be connected to
 -- from a particular direction, taking into account orientation
 function Tube:is_valid_dir(node, dir)
-	if node and dir ~= nil and self.secondary_node_names[node.name] then
+	if node and dir ~= nil and self.valid_node_contact_sides[node.name] then
 		local side = tubelib2.dir_to_side(dir, node.param2)
 		return self:is_valid_side(node.name, side)
 	end
+end
+
+-- Checks if a node at a particular position can be connected to
+-- from a particular direction, taking into account orientation
+function Tube:is_valid_dir_pos(pos, dir)
+	local node = self:get_node_lvm(pos)
+	return self:is_valid_dir(node, dir)
 end
 
 -- Register further nodes, which should be updated after
