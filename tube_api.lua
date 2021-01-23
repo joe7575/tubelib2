@@ -233,13 +233,16 @@ local function invert_booleans(tab)
 	end
 	return inversion
 end
-local valid_sides_default_true = {B=true, R=true, F=true, L=true, D=true, U=true}
+local valid_sides_default_true = Tbl(DirToSide)
 local valid_sides_default_false = invert_booleans(valid_sides_default_true)
 local function complete_valid_sides(valid_sides, existing_defaults)
-	local valid_sides_complete = valid_sides or {}
+	local valid_sides_complete = {}
 	for side, default_value in pairs(existing_defaults) do
-		if valid_sides_complete[side] == nil then
+		local new_value = valid_sides[side]
+		if new_value == nil then
 			valid_sides_complete[side] = default_value
+		else
+			valid_sides_complete[side] = new_value
 		end
 	end
 	return valid_sides_complete
