@@ -62,7 +62,7 @@ local Tube = tubelib2.Tube:new({
 	-- dirs_to_check = {1,2,3,4}, -- horizontal only
 	-- dirs_to_check = {5,6},  -- vertical only
 	dirs_to_check = {1,2,3,4,5,6},
-	max_tube_length = 1000, 
+	max_tube_length = 10, 
 	show_infotext = true,
 	primary_node_names = {"tubelib2:tubeS", "tubelib2:tubeA"}, 
 	secondary_node_names = {"default:chest", "default:chest_open", 
@@ -385,18 +385,45 @@ local function remove_tube(itemstack, placer, pointed_thing)
 	end
 end
 
-local function walk(itemstack, placer, pointed_thing)
+--local function walk(itemstack, placer, pointed_thing)
+--	if pointed_thing.type == "node" then
+--		local pos = pointed_thing.under
+--		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
+--		local t = minetest.get_us_time()
+--		local pos1, outdir1, pos2, outdir2, cnt = Tube:walk(pos, dir)
+--		t = minetest.get_us_time() - t
+--		print("time", t)
+--		if pos1 then
+--			local s = "[Tubelib2] pos1="..P2S(pos1)..", outdir1="..outdir1..", pos2="..P2S(pos2)..", outdir2="..outdir2..", cnt="..cnt
+--			minetest.chat_send_player(placer:get_player_name(), s)
+--		end
+--	else
+--		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
+--		minetest.chat_send_player(placer:get_player_name(), 
+--			"[Tool Help] dir="..dir.."\n"..
+--			"    left: remove node\n"..
+--			"    right: repair tube line\n")
+--	end
+--end
+
+local function repair_tube(itemstack, placer, pointed_thing)
 	if pointed_thing.type == "node" then
 		local pos = pointed_thing.under
-		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
-		local t = minetest.get_us_time()
-		local pos1, outdir1, pos2, outdir2, cnt = Tube:walk(pos, dir)
-		t = minetest.get_us_time() - t
-		print("time", t)
-		if pos1 then
-			local s = "[Tubelib2] pos1="..P2S(pos1)..", outdir1="..outdir1..", pos2="..P2S(pos2)..", outdir2="..outdir2..", cnt="..cnt
+		local _, _, fpos1, fpos2, _, _, cnt1, cnt2 = Tube:tool_repair_tube(pos)
+		local length = cnt1 + cnt2
+		
+		local s = "Tube from " .. P2S(fpos1) .. " to " .. P2S(fpos2) .. ". Lenght = " .. length
+		minetest.chat_send_player(placer:get_player_name(), s)
+		
+		if length > Tube.max_tube_length then
+			local s = string.char(0x1b) .. "(c@#ff0000)" .. "Tube length error!"
 			minetest.chat_send_player(placer:get_player_name(), s)
 		end
+		
+		minetest.sound_play("carts_cart_new", {
+				pos = pos, 
+				gain = 1,
+				max_hear_distance = 5})
 	else
 		local dir = (minetest.dir_to_facedir(placer:get_look_dir()) % 4) + 1
 		minetest.chat_send_player(placer:get_player_name(), 
@@ -404,10 +431,6 @@ local function walk(itemstack, placer, pointed_thing)
 			"    left: remove node\n"..
 			"    right: repair tube line\n")
 	end
-end
-
-local function debug(itemstack, placer, pointed_thing)
-	Tube:dbg_out()
 end
 
 -- Tool for tube workers to crack a protected tube line
@@ -418,7 +441,7 @@ minetest.register_node("tubelib2:tool", {
 	use_texture_alpha = true,
 	groups = {cracky=1, book=1},
 	on_use = remove_tube,
-	on_place = debug,
+	on_place = repair_tube,
 	node_placement_prediction = "",
 	stack_max = 1,
 })

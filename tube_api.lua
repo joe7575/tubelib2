@@ -105,9 +105,9 @@ local function update1(self, pos, dir)
 end
 
 local function update2(self, pos1, dir1, pos2, dir2)
-	local fpos1,fdir1 = self:walk_tube_line(pos1, dir1)
-	local fpos2,fdir2 = self:walk_tube_line(pos2, dir2)
-	if not fdir1 or not fdir2 then -- line to long?
+	local fpos1,fdir1,cnt1 = self:walk_tube_line(pos1, dir1)
+	local fpos2,fdir2,cnt2 = self:walk_tube_line(pos2, dir2)
+	if cnt1 + cnt2 >= self.max_tube_length then -- line to long?
 		-- reset next tube(s) to head tube(s) again
 		local param2 = self:encode_param2(dir1, dir2, 2)
 		self:update_after_dig_tube(pos1, param2)
