@@ -33,7 +33,7 @@ local function get_pos(pos, dir)
 end
 
 local function fdir(self, player)
-	local pitch = player:get_look_pitch()
+	local pitch = player:get_look_vertical()
 	if pitch > 1.0 and self.valid_dirs[6] then -- up?
 		return 6
 	elseif pitch < -1.0 and self.valid_dirs[5] then -- down?
