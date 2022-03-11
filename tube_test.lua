@@ -82,9 +82,9 @@ Tube:register_on_tube_update(function(node, pos, out_dir, peer_pos, peer_in_dir)
 		print(P2S(pos).." to the "..sdir..": Not connected")
 	elseif Tube:is_secondary_node(peer_pos) then
 		local node = minetest.get_node(peer_pos)
-		print(P2S(pos).." to the "..sdir..": Connected with "..node.name.." at "..P2S(peer_pos).."/"..peer_in_dir)
+		print(P2S(pos).." to the "..sdir..": Connected to "..node.name.." at "..P2S(peer_pos).."/"..peer_in_dir)
 	else
-		print(P2S(pos).." to the "..sdir..": Connected with "..P2S(peer_pos).."/"..peer_in_dir)
+		print(P2S(pos).." to the "..sdir..": Connected to "..P2S(peer_pos).."/"..peer_in_dir)
 		for i, pos, node in Tube:get_tube_line(pos, out_dir) do
 			print("walk", P2S(pos), node.name)
 		end
