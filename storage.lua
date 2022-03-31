@@ -80,9 +80,13 @@ local function new_node(block, node_key)
 	return block[node_key]
 end
 
-local function unlock(pos)
-	local block_key = math.floor((pos.z+32768)/16)*4096*4096 +
+local function pos_to_block_key(pos)
+	return math.floor((pos.z+32768)/16)*4096*4096 +
 		math.floor((pos.y+32768)/16)*4096 + math.floor((pos.x+32768)/16)
+end
+
+local function unlock(pos)
+	local block_key = pos_to_block_key(pos)
 	local node_key = (pos.z%16)*16*16 + (pos.y%16)*16 + (pos.x%16)
 	local block = MemStore[block_key] or new_block(block_key)
 	block.used = true
@@ -127,6 +131,13 @@ end
 -- Read a value, or return the default value if not available
 function tubelib2.get_mem_data(pos, key, default)
 	return tubelib2.get_mem(pos)[key] or default
+end
+
+function tubelib2.save_mem(pos)
+	local block_key = pos_to_block_key(pos)
+	if MemStore[block_key] then
+		storage:set_string(block_key, minetest.serialize(MemStore[block_key]))
+	end
 end
 
 function tubelib2.walk_over_all(clbk)
